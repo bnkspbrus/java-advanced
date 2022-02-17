@@ -11,28 +11,10 @@ public class Walk {
     private static final int DEFAULT_BUFFER_SIZE = 8192;
 
     public static void main(String[] args) throws NoSuchAlgorithmException {
-        if (!validArgs(args)) {
-            System.err.println("Usage:\njava Walk <input file> <output file>");
-            return;
-        }
-        File in = new File(args[0]), out = new File(args[1]);
-        if (!createDirectories(out)) {
-            System.err.println("Unable to create parent directories for output file");
-            return;
-        }
-        try (BufferedReader bufferedReader = new BufferedReader(
-                new FileReader(in, StandardCharsets.UTF_8)); BufferedWriter bufferedWriter = new BufferedWriter(
-                new FileWriter(out, StandardCharsets.UTF_8))) {
-            String path;
-            while ((path = bufferedReader.readLine()) != null) {
-                String hash = getFileHash(new File(path));
-                bufferedWriter.write(hash + " " + path);
-                bufferedWriter.newLine();
-            }
-            bufferedWriter.flush();
-        } catch (IOException e) {
-            System.err.println("Unable to open input/output file " + e.getMessage());
-//            System.exit(0);
+        try {
+            run(args);
+        } catch (WalkException e) {
+            System.err.println(e.getMessage());
         }
     }
 
@@ -77,5 +59,29 @@ public class Walk {
             }
         }
         return start;
+    }
+
+    static void run(String[] args) throws WalkException {
+        if (!validArgs(args)) {
+//            System.err.println("Usage:\njava Walk <input file> <output file>");
+            throw new WalkException("Usage:\njava Walk <input file> <output file>");
+        }
+        File in = new File(args[0]), out = new File(args[1]);
+        if (!createDirectories(out)) {
+            throw new WalkException("Unable to create parent directories for output file");
+        }
+        try (BufferedReader bufferedReader = new BufferedReader(
+                new FileReader(in, StandardCharsets.UTF_8)); BufferedWriter bufferedWriter = new BufferedWriter(
+                new FileWriter(out, StandardCharsets.UTF_8))) {
+            String path;
+            while ((path = bufferedReader.readLine()) != null) {
+                String hash = getFileHash(new File(path));
+                bufferedWriter.write(hash + " " + path);
+                bufferedWriter.newLine();
+            }
+            bufferedWriter.flush();
+        } catch (IOException | NoSuchAlgorithmException e) {
+            throw new WalkException("Unable to open input/output file " + e.getMessage());
+        }
     }
 }
