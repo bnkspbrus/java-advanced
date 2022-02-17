@@ -3,6 +3,9 @@ package info.kgeorgiy.ja.barsukov.walk;
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -18,12 +21,16 @@ public class Walk {
         }
     }
 
-    private static boolean createDirectories(File file) {
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists()) {
-            return parent.mkdirs();
+    private static void createDirectories(Path path) throws WalkException {
+        Path parent = path.getParent();
+        if (parent == null) {
+            return;
         }
-        return true;
+        try {
+            Files.createDirectories(parent);
+        } catch (IOException e) {
+            throw new WalkException("Unable to create parent directories for output file");
+        }
     }
 
     private static String getFileHash(File file) throws NoSuchAlgorithmException {
@@ -66,13 +73,17 @@ public class Walk {
 //            System.err.println("Usage:\njava Walk <input file> <output file>");
             throw new WalkException("Usage:\njava Walk <input file> <output file>");
         }
-        File in = new File(args[0]), out = new File(args[1]);
-        if (!createDirectories(out)) {
-            throw new WalkException("Unable to create parent directories for output file");
+//        File in = new File(args[0]), out = new File(args[1]);
+        Path in, out;
+        try {
+            in = Path.of(args[0]);
+            out = Path.of(args[1]);
+        } catch (InvalidPathException e) {
+            throw new WalkException("Invalid path of input/output file " + e.getMessage());
         }
-        try (BufferedReader bufferedReader = new BufferedReader(
-                new FileReader(in, StandardCharsets.UTF_8)); BufferedWriter bufferedWriter = new BufferedWriter(
-                new FileWriter(out, StandardCharsets.UTF_8))) {
+        createDirectories(out);
+        try (BufferedReader bufferedReader = Files.newBufferedReader(
+                in); BufferedWriter bufferedWriter = Files.newBufferedWriter(out)) {
             String path;
             while ((path = bufferedReader.readLine()) != null) {
                 String hash = getFileHash(new File(path));
