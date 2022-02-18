@@ -2,7 +2,6 @@ package info.kgeorgiy.ja.barsukov.walk;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -33,15 +32,15 @@ public class Walk {
         }
     }
 
-    private static String getFileHash(File file) throws NoSuchAlgorithmException {
-        try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(file))) {
+    private static String getFileHash(Path path) throws NoSuchAlgorithmException {
+        try (InputStream is = Files.newInputStream(path)) {
             return hash(is);
         } catch (IOException e) {
             return NULL_FILE_HASH;
         }
     }
 
-    private static String hash(BufferedInputStream is) throws IOException, NoSuchAlgorithmException {
+    private static String hash(InputStream is) throws IOException, NoSuchAlgorithmException {
         byte[] buf = new byte[DEFAULT_BUFFER_SIZE];
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
         int size;
@@ -86,7 +85,14 @@ public class Walk {
                 in); BufferedWriter bufferedWriter = Files.newBufferedWriter(out)) {
             String path;
             while ((path = bufferedReader.readLine()) != null) {
-                String hash = getFileHash(new File(path));
+                Path file;
+                String hash;
+                try {
+                    file = Path.of(path);
+                    hash = getFileHash(file);
+                } catch (InvalidPathException e) {
+                    hash = NULL_FILE_HASH;
+                }
                 bufferedWriter.write(hash + " " + path);
                 bufferedWriter.newLine();
             }
