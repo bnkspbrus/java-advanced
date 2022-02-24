@@ -2,6 +2,7 @@ package info.kgeorgiy.ja.barsukov.walk;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -12,7 +13,7 @@ public class Walk {
     static final String NULL_FILE_HASH = "0000000000000000000000000000000000000000";
     private static final int DEFAULT_BUFFER_SIZE = 8192;
 
-    public static void main(String[] args) throws NoSuchAlgorithmException {
+    public static void main(String[] args) {
         try {
             run(args);
         } catch (WalkException e) {
@@ -40,7 +41,7 @@ public class Walk {
         }
     }
 
-    private static String hash(InputStream is) throws IOException, NoSuchAlgorithmException {
+    private static String hash(InputStream is) throws NoSuchAlgorithmException, IOException {
         byte[] buf = new byte[DEFAULT_BUFFER_SIZE];
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
         int size;
@@ -53,18 +54,6 @@ public class Walk {
 
     private static boolean validArgs(String[] args) {
         return args != null && args.length == 2 && args[0] != null && args[1] != null;
-    }
-
-    private static long hash(final byte[] bytes, final int size, long start) {
-        for (int i = 0; i < size; i++) {
-            start = (start << 8) + (bytes[i] & 0xff);
-            final long high = start & 0xff00_0000_0000_0000L;
-            if (high != 0) {
-                start ^= high >> 48;
-                start &= ~high;
-            }
-        }
-        return start;
     }
 
     static void run(String[] args) throws WalkException {
@@ -82,7 +71,7 @@ public class Walk {
         }
         createDirectories(out);
         try (BufferedReader bufferedReader = Files.newBufferedReader(
-                in); BufferedWriter bufferedWriter = Files.newBufferedWriter(out)) {
+                in, StandardCharsets.UTF_8); BufferedWriter bufferedWriter = Files.newBufferedWriter(out, StandardCharsets.UTF_8)) {
             String path;
             while ((path = bufferedReader.readLine()) != null) {
                 Path file;
@@ -97,8 +86,10 @@ public class Walk {
                 bufferedWriter.newLine();
             }
             bufferedWriter.flush();
-        } catch (IOException | NoSuchAlgorithmException e) {
+        } catch (IOException e) {
             throw new WalkException("Unable to open input/output file " + e.getMessage());
+        } catch (NoSuchAlgorithmException e) {
+            throw new WalkException("Digest error: " + e.getMessage());
         }
     }
 }
