@@ -11,6 +11,8 @@ import java.security.NoSuchAlgorithmException;
 public class Walk {
     static final String NULL_FILE_HASH = "0000000000000000000000000000000000000000";
     private static final int DEFAULT_BUFFER_SIZE = 8192;
+
+    // :NOTE: Глобальные переменные
     private static final byte[] buf = new byte[DEFAULT_BUFFER_SIZE];
     private static MessageDigest messageDigest;
 
@@ -22,14 +24,14 @@ public class Walk {
         }
     }
 
-    private static void createDirectories(final Path path) throws WalkException {
+    private static void createDirectories(final Path path) {
         final Path parent = path.getParent();
         if (parent == null) {
             return;
         }
         try {
             Files.createDirectories(parent);
-        } catch (IOException ignored) {
+        } catch (final IOException ignored) {
         }
     }
 
@@ -41,12 +43,11 @@ public class Walk {
         }
     }
 
-    private static Path createFile(String fileName, boolean isInputFile) throws WalkException {
+    private static Path createFile(final String fileName, final String type) throws WalkException {
         try {
             return Path.of(fileName);
-        } catch (InvalidPathException e) {
-            throw new WalkException(
-                    "Invalid path of " + (isInputFile ? "input" : "output") + " file: " + e.getMessage());
+        } catch (final InvalidPathException e) {
+            throw new WalkException("Invalid path of " + type + " file: " + e.getMessage());
         }
     }
 
@@ -67,21 +68,21 @@ public class Walk {
         if (!validArgs(args)) {
             throw new WalkException("Usage:\njava Walk <input file> <output file>");
         }
+
         try {
             messageDigest = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e) {
+        } catch (final NoSuchAlgorithmException e) {
             throw new WalkException("Digest error: " + e.getMessage());
         }
-        final Path inputFile;
-        final Path outputFile;
-        inputFile = createFile(args[0], true);
-        outputFile = createFile(args[1], false);
+
+        final Path inputFile = createFile(args[0], "input");
+        final Path outputFile = createFile(args[1], "output");
         createDirectories(outputFile);
-        // :NOTE: Кодировки
+
         try (final BufferedReader bufferedReader = Files.newBufferedReader(inputFile)) {
             try (final BufferedWriter bufferedWriter = Files.newBufferedWriter(outputFile)) {
-                String path;
                 try {
+                    String path;
                     while ((path = bufferedReader.readLine()) != null) {
                         String hash;
                         try {
