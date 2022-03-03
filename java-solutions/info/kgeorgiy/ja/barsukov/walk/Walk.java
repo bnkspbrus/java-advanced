@@ -2,7 +2,6 @@ package info.kgeorgiy.ja.barsukov.walk;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -12,6 +11,8 @@ import java.security.NoSuchAlgorithmException;
 public class Walk {
     static final String NULL_FILE_HASH = "0000000000000000000000000000000000000000";
     private static final int DEFAULT_BUFFER_SIZE = 8192;
+    private static final byte[] buf = new byte[DEFAULT_BUFFER_SIZE];
+    private static MessageDigest messageDigest;
 
     public static void main(final String[] args) {
         try {
@@ -28,13 +29,11 @@ public class Walk {
         }
         try {
             Files.createDirectories(parent);
-        } catch (final IOException e) {
-            // :NOTE: Не повод
-            throw new WalkException("Unable to create parent directories for output file");
+        } catch (IOException ignored) {
         }
     }
 
-    private static String getFileHash(final Path path) throws NoSuchAlgorithmException {
+    private static String getFileHash(final Path path) {
         try (final InputStream is = Files.newInputStream(path)) {
             return hash(is);
         } catch (final IOException e) {
@@ -42,10 +41,16 @@ public class Walk {
         }
     }
 
-    private static String hash(final InputStream is) throws NoSuchAlgorithmException, IOException {
-        // :NOTE: Переиспользовать
-        final byte[] buf = new byte[DEFAULT_BUFFER_SIZE];
-        final MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
+    private static Path createFile(String fileName, boolean isInputFile) throws WalkException {
+        try {
+            return Path.of(fileName);
+        } catch (InvalidPathException e) {
+            throw new WalkException(
+                    "Invalid path of " + (isInputFile ? "input" : "output") + " file: " + e.getMessage());
+        }
+    }
+
+    public static String hash(final InputStream is) throws IOException {
         int size;
         while ((size = is.read(buf)) != -1) {
             messageDigest.update(buf, 0, size);
@@ -60,40 +65,45 @@ public class Walk {
 
     static void run(final String[] args) throws WalkException {
         if (!validArgs(args)) {
-//            System.err.println("Usage:\njava Walk <input file> <output file>");
             throw new WalkException("Usage:\njava Walk <input file> <output file>");
         }
-//        File in = new File(args[0]), out = new File(args[1]);
-        final Path in;
-        final Path out;
         try {
-            in = Path.of(args[0]);
-            out = Path.of(args[1]);
-        } catch (final InvalidPathException e) {
-            // :NOTE: Какого файла
-            throw new WalkException("Invalid path of input/output file " + e.getMessage());
+            messageDigest = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
+            throw new WalkException("Digest error: " + e.getMessage());
         }
-
-        createDirectories(out);
+        final Path inputFile;
+        final Path outputFile;
+        inputFile = createFile(args[0], true);
+        outputFile = createFile(args[1], false);
+        createDirectories(outputFile);
         // :NOTE: Кодировки
-        try (final BufferedReader bufferedReader = Files.newBufferedReader(in, StandardCharsets.UTF_8);
-             final BufferedWriter bufferedWriter = Files.newBufferedWriter(out, StandardCharsets.UTF_8)) {
-            String path;
-            while ((path = bufferedReader.readLine()) != null) {
-                String hash;
+        try (final BufferedReader bufferedReader = Files.newBufferedReader(inputFile)) {
+            try (final BufferedWriter bufferedWriter = Files.newBufferedWriter(outputFile)) {
+                String path;
                 try {
-                    hash = getFileHash(Path.of(path));
-                } catch (final InvalidPathException e) {
-                    hash = NULL_FILE_HASH;
+                    while ((path = bufferedReader.readLine()) != null) {
+                        String hash;
+                        try {
+                            hash = getFileHash(Path.of(path));
+                        } catch (final InvalidPathException e) {
+                            hash = NULL_FILE_HASH;
+                        }
+                        try {
+                            bufferedWriter.write(hash + " " + path);
+                            bufferedWriter.newLine();
+                        } catch (final IOException e) {
+                            throw new WalkException("Unable to write data to output file: " + e.getMessage());
+                        }
+                    }
+                } catch (final IOException e) {
+                    throw new WalkException("Unable to read data from input file: " + e.getMessage());
                 }
-                bufferedWriter.write(hash + " " + path);
-                // :NOTE: ??
-                bufferedWriter.newLine();
+            } catch (final IOException e) {
+                throw new WalkException("Unable to open output file: " + outputFile);
             }
         } catch (final IOException e) {
-            throw new WalkException("Unable to open input/output file " + e.getMessage());
-        } catch (final NoSuchAlgorithmException e) {
-            throw new WalkException("Digest error: " + e.getMessage());
+            throw new WalkException("Unable to open input file: " + inputFile);
         }
     }
 }
