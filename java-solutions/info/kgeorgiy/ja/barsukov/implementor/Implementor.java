@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Implementor implements Impler {
@@ -79,8 +80,11 @@ public class Implementor implements Impler {
     }
 
     private String methodsToString(Class<?> token) {
-        return Arrays.stream(token.getMethods()).map(Implementor::methodToString).collect(
-                Collectors.joining(LINE_SEPARATOR));
+        return mapAndJoin(token.getMethods(), Implementor::methodToString, LINE_SEPARATOR);
+    }
+
+    private static <T> String mapAndJoin(T[] elements, Function<? super T, String> mapper, String separator) {
+        return Arrays.stream(elements).map(mapper).collect(Collectors.joining(separator));
     }
 
 
@@ -112,9 +116,8 @@ public class Implementor implements Impler {
     }
 
     private static String parametersToString(Method method) {
-        return Arrays.stream(method.getParameters()).map(
-                parameter -> parameter.getType().getCanonicalName() + SPACE + parameter.getName()).collect(
-                Collectors.joining(PARAMETER_SEPARATOR));
+        return mapAndJoin(method.getParameters(),
+                parameter -> parameter.getType().getCanonicalName() + SPACE + parameter.getName(), PARAMETER_SEPARATOR);
     }
 
     private String packageToString(Class<?> token) {
