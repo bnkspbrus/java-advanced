@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 public class StudentDB implements StudentQuery {
     private static final Comparator<Student> SORT_BY_NAME =
-            // :NOTE: Упростить
+            // :NOTE: Упростить, formatting
             Comparator.comparing(Student::getLastName).thenComparing(Student::getFirstName).reversed().thenComparingInt(Student::getId);
 
     private static final Comparator<Student> COMPARE_ID = Comparator.comparingInt(Student::getId);
