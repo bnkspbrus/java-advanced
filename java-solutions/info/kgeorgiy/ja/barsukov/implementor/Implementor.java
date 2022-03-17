@@ -70,7 +70,7 @@ public class Implementor implements Impler {
 
     private void checkClassToken(Class<?> token) throws ImplerException {
         if (!token.isInterface() || Modifier.isPrivate(token.getModifiers())) {
-            throw new ImplerException("Token isn't interface");
+            throw new ImplerException("Invalid class token given: " + token.getCanonicalName());
         }
     }
 
@@ -129,7 +129,7 @@ public class Implementor implements Impler {
         return String.join(SPACE, PUBLIC, CLASS, className(token), IMPLEMENTS, token.getCanonicalName());
     }
 
-    void createDirectories(Path path) {
+    private void createDirectories(Path path) {
         Path parent = path.getParent();
         if (parent != null) {
             try {
