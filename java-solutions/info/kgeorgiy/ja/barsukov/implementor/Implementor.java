@@ -57,6 +57,7 @@ public class Implementor implements Impler {
         Path implPath;
         try {
             implPath = Path.of(root.toString(), packageStringPath(token), className(token) + ".java");
+        // :NOTE: redundant catch
         } catch (InvalidPathException e) {
             throw new ImplerException(e.getMessage());
         }
@@ -111,6 +112,7 @@ public class Implementor implements Impler {
     }
 
     private static String signatureToString(Method method) {
+        // :NOTE: private parameters and return type
         return String.join(SPACE, PUBLIC, method.getReturnType().getCanonicalName(),
                 method.getName() + OPEN_BRACKET + parametersToString(method) + CLOSE_BRACKET);
     }
@@ -159,7 +161,7 @@ public class Implementor implements Impler {
             new Implementor().implement(Class.forName(args[0]), Path.of(args[1]));
         } catch (ClassNotFoundException e) {
             throw new ImplerException("Given interface isn't found");
-        } catch (InvalidPathException e) {
+        } catch (InvalidPathException e) { // :NOTE: redundant catch
             throw new ImplerException("Given path isn't valid");
         }
     }
@@ -167,4 +169,11 @@ public class Implementor implements Impler {
     private static String className(Class<?> token) {
         return token.getSimpleName() + IMPL;
     }
+
+    // :NOTE:
+//    private class A {}
+//
+//    public interface I {
+//        public A foo(A a);
+//    }
 }
