@@ -2,20 +2,30 @@ package info.kgeorgiy.ja.barsukov.implementor;
 
 import info.kgeorgiy.java.advanced.implementor.Impler;
 import info.kgeorgiy.java.advanced.implementor.ImplerException;
+import info.kgeorgiy.java.advanced.implementor.JarImpler;
+import org.junit.Assert;
 
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.function.Function;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
-public class Implementor implements Impler {
+public class Implementor implements Impler, JarImpler {
 
     private static final String LINE_SEPARATOR = System.lineSeparator();
 
@@ -51,13 +61,15 @@ public class Implementor implements Impler {
 
     private static final char FILE_SEPARATOR = File.separatorChar;
 
+    private static final String USAGE_INFORMATION = "Usage: java Implementor [-jar] <full interface name> <class root>";
+
     @Override
     public void implement(Class<?> token, Path root) throws ImplerException {
         checkClassToken(token);
         Path implPath;
         try {
-            implPath = Path.of(root.toString(), packageStringPath(token), className(token) + ".java");
-        // :NOTE: redundant catch
+            implPath = getFullImplPath(token, root);
+            // :NOTE: redundant catch
         } catch (InvalidPathException e) {
             throw new ImplerException(e.getMessage());
         }
@@ -141,7 +153,7 @@ public class Implementor implements Impler {
         }
     }
 
-    String packageStringPath(Class<?> token) {
+    private static String packageStringPath(Class<?> token) {
         return token.getPackageName().replace('.', FILE_SEPARATOR);
     }
 
@@ -154,26 +166,96 @@ public class Implementor implements Impler {
     }
 
     private static void run(String[] args) throws ImplerException {
-        if (args == null || args.length != 2 || args[0] == null || args[1] == null) {
-            throw new ImplerException("Usage: java Implementor <full interface name>");
-        }
+        checkArgs(args);
         try {
-            new Implementor().implement(Class.forName(args[0]), Path.of(args[1]));
+            if (args.length == 2) {
+                new Implementor().implement(Class.forName(args[0]), Path.of(args[1]));
+            } else if (args.length == 3 && args[0].equals("-jar")) {
+                new Implementor().implementJar(Class.forName(args[1]), Path.of(args[2]));
+            } else {
+                throw new ImplerException(USAGE_INFORMATION);
+            }
         } catch (ClassNotFoundException e) {
             throw new ImplerException("Given interface isn't found");
-        } catch (InvalidPathException e) { // :NOTE: redundant catch
-            throw new ImplerException("Given path isn't valid");
         }
     }
 
+    private static void checkArgs(String[] args) throws ImplerException {
+        if (args == null || args.length < 2 || args.length > 3 || anyMatchNull(args)) {
+            throw new ImplerException(USAGE_INFORMATION);
+        }
+    }
+
+    private static boolean anyMatchNull(String[] args) {
+        return Arrays.stream(args).anyMatch(Objects::isNull);
+    }
+
+    /**
+     * Generates name for interface implementation.
+     *
+     * @param token given interface token.
+     * @return generated name for class.
+     */
     private static String className(Class<?> token) {
         return token.getSimpleName() + IMPL;
     }
 
+    public static void compile(final Class<?> token, final Path root) {
+        final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        Assert.assertNotNull("Could not find java compiler, include tools.jar to classpath", compiler);
+        final int exitCode = compiler.run(null, null, null, getFullImplPath(token, root).toString(), "-cp",
+                getClassPath(token));
+        Assert.assertEquals("Compiler exit code", 0, exitCode);
+    }
+
+    private static Path getFullImplPath(final Class<?> token, final Path root) {
+        return root.resolve(packageStringPath(token) + FILE_SEPARATOR + className(token) + ".java");
+    }
+
+    private static String getClassPath(Class<?> token) {
+        try {
+            return Path.of(token.getProtectionDomain().getCodeSource().getLocation().toURI()).toString();
+        } catch (final URISyntaxException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private void createJar(Class<?> token, Path jarFile, Path temp) throws ImplerException {
+        Manifest manifest = new Manifest();
+        Attributes mainAttributes = manifest.getMainAttributes();
+        mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        try (JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
+            String pathFromTemp = packageStringPath(token) + FILE_SEPARATOR + className(token) + ".class";
+            jarOutputStream.putNextEntry(new JarEntry(pathFromTemp));
+            Files.copy(Path.of(temp.toString(), pathFromTemp), jarOutputStream);
+        } catch (IOException e) {
+            throw new ImplerException(e.getMessage());
+        }
+    }
+
+    @Override
+    public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
+        Path temp;
+        try {
+            temp = Files.createTempDirectory(jarFile.getParent(), "temp");
+            implement(token, temp);
+            compile(token, temp);
+            createJar(token, jarFile, temp);
+            deleteDirectory(temp.toFile());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean deleteDirectory(File dir) {
+        File[] list = dir.listFiles();
+        if (list != null) {
+            for (File file : list) {
+                deleteDirectory(file);
+            }
+        }
+        return dir.delete();
+    }
+
     // :NOTE:
-//    private class A {}
-//
-//    public interface I {
-//        public A foo(A a);
-//    }
 }
