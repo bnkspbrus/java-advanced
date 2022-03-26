@@ -447,7 +447,7 @@ public class Implementor implements Impler, JarImpler {
         Attributes mainAttributes = manifest.getMainAttributes();
         mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
         try (JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
-            String pathFromTemp = pathFromExecDirWithoutExt(token) + ".class";
+            String pathFromTemp = token.getPackageName().replace('.', '/' ) + ".class";
             jarOutputStream.putNextEntry(new JarEntry(pathFromTemp));
             Files.copy(Path.of(temp.toString(), pathFromTemp), jarOutputStream);
         } catch (IOException e) {
