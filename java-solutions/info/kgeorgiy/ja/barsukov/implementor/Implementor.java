@@ -15,6 +15,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.jar.Attributes;
@@ -447,7 +448,7 @@ public class Implementor implements Impler, JarImpler {
         Attributes mainAttributes = manifest.getMainAttributes();
         mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
         try (JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
-            String pathFromTemp = token.getPackageName().replace('.', '/' ) + ".class";
+            String pathFromTemp = token.getPackageName().replace('.', '/') + '/' + classNameToString(token)+ ".class";
             jarOutputStream.putNextEntry(new JarEntry(pathFromTemp));
             Files.copy(Path.of(temp.toString(), pathFromTemp), jarOutputStream);
         } catch (IOException e) {
