@@ -1,0 +1,2 @@
+Main-Class: info.kgeorgiy.ja.barsukov.implementor.Implementor
+Class-Path: /home/nikita/java-advanced/solutions/scripts/../../shared/artifacts/info.kgeorgiy.java.advanced.implementor.jar
