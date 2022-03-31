@@ -12,7 +12,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- *
+ * Class for processing lists in multiple threads.
  */
 public class IterativeParallelism implements ScalarIP {
     private static <T> List<Stream<? extends T>> split(final int threads, final List<? extends T> values) {
@@ -65,18 +65,56 @@ public class IterativeParallelism implements ScalarIP {
         return execute(split(threads, values), process, process);
     }
 
+    /**
+     * Returns maximum value.
+     *
+     * @param threads number or concurrent threads.
+     * @param values values to get maximum of.
+     * @param comparator value comparator.
+     * @param <T> value type.
+     *
+     * @return maximum of given values
+     *
+     * @throws InterruptedException if executing thread was interrupted.
+     * @throws java.util.NoSuchElementException if no values are given.
+     */
     @Override
     public <T> T maximum(final int threads, final List<? extends T> values,
             final Comparator<? super T> comparator) throws InterruptedException {
         return execute(threads, values, stream -> stream.max(comparator).orElse(null));
     }
 
+    /**
+     * Returns minimum value.
+     *
+     * @param threads number or concurrent threads.
+     * @param values values to get minimum of.
+     * @param comparator value comparator.
+     * @param <T> value type.
+     *
+     * @return minimum of given values
+     *
+     * @throws InterruptedException if executing thread was interrupted.
+     * @throws java.util.NoSuchElementException if no values are given.
+     */
     @Override
     public <T> T minimum(final int threads, final List<? extends T> values,
             final Comparator<? super T> comparator) throws InterruptedException {
         return execute(threads, values, stream -> stream.min(comparator).orElse(null));
     }
 
+    /**
+     * Returns whether all values satisfies predicate.
+     *
+     * @param threads number or concurrent threads.
+     * @param values values to test.
+     * @param predicate test predicate.
+     * @param <T> value type.
+     *
+     * @return whether all values satisfies predicate or {@code true}, if no values are given
+     *
+     * @throws InterruptedException if executing thread was interrupted.
+     */
     @Override
     public <T> boolean all(final int threads, final List<? extends T> values,
             final Predicate<? super T> predicate) throws InterruptedException {
@@ -84,6 +122,18 @@ public class IterativeParallelism implements ScalarIP {
                 stream -> stream.allMatch(Boolean::booleanValue));
     }
 
+    /**
+     * Returns whether any of values satisfies predicate.
+     *
+     * @param threads number or concurrent threads.
+     * @param values values to test.
+     * @param predicate test predicate.
+     * @param <T> value type.
+     *
+     * @return whether any value satisfies predicate or {@code false}, if no values are given
+     *
+     * @throws InterruptedException if executing thread was interrupted.
+     */
     @Override
     public <T> boolean any(final int threads, final List<? extends T> values,
             final Predicate<? super T> predicate) throws InterruptedException {
