@@ -133,13 +133,13 @@ public class Implementor implements Impler, JarImpler {
      * @throws info.kgeorgiy.java.advanced.implementor.ImplerException when implementation cannot be generated.
      */
     @Override
-    public void implement(Class<?> token, Path root) throws ImplerException {
+    public void implement(final Class<?> token, final Path root) throws ImplerException {
         checkClassToken(token);
-        Path implPath = getFullImplPath(token, root);
+        final Path implPath = getFullImplPath(token, root);
         createDirectories(implPath);
-        try (BufferedWriter writer = Files.newBufferedWriter(implPath)) {
+        try (final BufferedWriter writer = Files.newBufferedWriter(implPath)) {
             writer.write(encode(classToString(token)));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ImplerException("Unable to write implementation in the file: " + implPath);
         }
     }
@@ -155,11 +155,11 @@ public class Implementor implements Impler, JarImpler {
      * @throws ImplerException when implementation cannot be generated.
      */
     @Override
-    public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
-        Path temp;
+    public void implementJar(final Class<?> token, final Path jarFile) throws ImplerException {
+        final Path temp;
         try {
             temp = Files.createTempDirectory(jarFile.getParent(), "temp");
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ImplerException(
                     "Unable to create a temporary directory in the directory: " + jarFile.getParent());
         }
@@ -172,10 +172,10 @@ public class Implementor implements Impler, JarImpler {
     /**
      * Checks that the given type token is valid.
      *
-     * @param token type token to implementation.
+     * @param token type token to create implementation for.
      * @throws ImplerException when token is invalid.
      */
-    private void checkClassToken(Class<?> token) throws ImplerException {
+    private void checkClassToken(final Class<?> token) throws ImplerException {
         if (!token.isInterface() || Modifier.isPrivate(token.getModifiers())) {
             throw new ImplerException("Invalid class token given: " + token.getCanonicalName());
         }
@@ -184,10 +184,10 @@ public class Implementor implements Impler, JarImpler {
     /**
      * Generates string implementation of class.
      *
-     * @param token type token of interface.
+     * @param token type token to create implementation fo.
      * @return string class implementation.
      */
-    private String classToString(Class<?> token) {
+    private String classToString(final Class<?> token) {
         return String.join(LINE_SEPARATOR, packageToString(token), declarationToString(token) + OPEN_CURLY_BRACKET,
                 methodsToString(token), CLOSE_CURLY_BRACKET);
     }
@@ -195,10 +195,10 @@ public class Implementor implements Impler, JarImpler {
     /**
      * Generates string implementation of methods for class.
      *
-     * @param token type token of interface.
+     * @param token type token to create implementation fo.
      * @return string methods implementation.
      */
-    private String methodsToString(Class<?> token) {
+    private String methodsToString(final Class<?> token) {
         return mapAndJoin(Implementor::methodToString, LINE_SEPARATOR, token.getMethods());
     }
 
@@ -208,11 +208,12 @@ public class Implementor implements Impler, JarImpler {
      * @param elements  array of elements to map and join with {@link Arrays#stream(Object[])}
      * @param mapper    function that map each element in array.
      * @param separator for separate elements in result string.
-     * @param <T>       type of elements in given array.
+     * @param <T>       the type of the elements of the given array.
      * @return result of mapping and joining.
      */
     @SafeVarargs
-    private static <T> String mapAndJoin(Function<? super T, String> mapper, String separator, T... elements) {
+    private static <T> String mapAndJoin(final Function<? super T, String> mapper, final String separator,
+            final T... elements) {
         return Arrays.stream(elements).map(mapper).collect(Collectors.joining(separator));
     }
 
@@ -220,9 +221,9 @@ public class Implementor implements Impler, JarImpler {
      * Generates string implementation of one given method.
      *
      * @param method to implement.
-     * @return implementation of method.
+     * @return implementation of the method.
      */
-    private static String methodToString(Method method) {
+    private static String methodToString(final Method method) {
         return mapAndJoin(element -> TAB + element, LINE_SEPARATOR, signatureToString(method) + OPEN_CURLY_BRACKET,
                 bodyToString(method), CLOSE_CURLY_BRACKET);
     }
@@ -231,19 +232,19 @@ public class Implementor implements Impler, JarImpler {
      * Generates method body implementation for one method.
      *
      * @param method to implement.
-     * @return implementation of method body.
+     * @return implementation of the method body.
      */
-    private static String bodyToString(Method method) {
+    private static String bodyToString(final Method method) {
         return String.join(SPACE, TAB, RETURN, defaultValue(method.getReturnType()), SEMICOLON);
     }
 
     /**
      * Generates default value for given type token.
      *
-     * @param token type token to default value.
+     * @param token type token to create implementation for.
      * @return default value in string.
      */
-    private static String defaultValue(Class<?> token) {
+    private static String defaultValue(final Class<?> token) {
         if (!token.isPrimitive()) {
             return "null";
         }
@@ -260,9 +261,9 @@ public class Implementor implements Impler, JarImpler {
      * Generates string method signature implementation.
      *
      * @param method to implement.
-     * @return stirng method signature implementation.
+     * @return string method signature implementation.
      */
-    private static String signatureToString(Method method) {
+    private static String signatureToString(final Method method) {
         return String.join(SPACE, PUBLIC, method.getReturnType().getCanonicalName(),
                 method.getName() + OPEN_BRACKET + parametersToString(method) + CLOSE_BRACKET);
     }
@@ -271,46 +272,46 @@ public class Implementor implements Impler, JarImpler {
      * @param method to implement.
      * @return string method parameters implementation.
      */
-    private static String parametersToString(Method method) {
+    private static String parametersToString(final Method method) {
         return mapAndJoin(parameter -> parameter.getType().getCanonicalName() + SPACE + parameter.getName(),
                 PARAMETER_SEPARATOR, method.getParameters());
     }
 
     /**
-     * @param token type token of interface.
-     * @return package to string.
+     * @param token type token to create implementation for.
+     * @return string package.
      */
-    private String packageToString(Class<?> token) {
-        String packName = token.getPackageName();
+    private String packageToString(final Class<?> token) {
+        final String packName = token.getPackageName();
         return packName.isEmpty() ? EMPTY : String.join(SPACE, PACKAGE, packName, SEMICOLON, LINE_SEPARATOR);
     }
 
     /**
-     * @param token type token of interface.
+     * @param token type token to create implementation for.
      * @return declaration to string.
      */
-    private String declarationToString(Class<?> token) {
+    private String declarationToString(final Class<?> token) {
         return String.join(SPACE, PUBLIC, CLASS, classNameToString(token), IMPLEMENTS, token.getCanonicalName());
     }
 
     /**
      * @param path to directory to create.
      */
-    private void createDirectories(Path path) {
-        Path parent = path.getParent();
+    private void createDirectories(final Path path) {
+        final Path parent = path.getParent();
         if (parent != null) {
             try {
                 Files.createDirectories(parent);
-            } catch (IOException ignored) {
+            } catch (final IOException ignored) {
             }
         }
     }
 
     /**
-     * @param token type token interface.
+     * @param token type token to create implementation for.
      * @return package to string.
      */
-    private static String packageStringPath(Class<?> token) {
+    private static String packageStringPath(final Class<?> token) {
         return token.getPackageName().replace('.', FILE_SEPARATOR);
     }
 
@@ -319,10 +320,10 @@ public class Implementor implements Impler, JarImpler {
      *
      * @param args command line arguments.
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         try {
             run(args);
-        } catch (ImplerException e) {
+        } catch (final ImplerException e) {
             System.err.println(e.getMessage());
         }
     }
@@ -333,7 +334,7 @@ public class Implementor implements Impler, JarImpler {
      * @param args command line arguments.
      * @throws ImplerException when implementation cannot be generated.
      */
-    private static void run(String[] args) throws ImplerException {
+    private static void run(final String[] args) throws ImplerException {
         checkArgs(args);
         try {
             if (args.length == 2) {
@@ -343,7 +344,7 @@ public class Implementor implements Impler, JarImpler {
             } else {
                 throw new ImplerException(USAGE_INFORMATION);
             }
-        } catch (ClassNotFoundException e) {
+        } catch (final ClassNotFoundException e) {
             throw new ImplerException("Given interface wasn't found");
         }
     }
@@ -352,7 +353,7 @@ public class Implementor implements Impler, JarImpler {
      * @param args args for {@link #main(String[])}method
      * @throws ImplerException if arguments are invalid.
      */
-    private static void checkArgs(String[] args) throws ImplerException {
+    private static void checkArgs(final String[] args) throws ImplerException {
         if (args == null || args.length < 2 || args.length > 3 || anyMatchNull(args)) {
             throw new ImplerException(USAGE_INFORMATION);
         }
@@ -383,13 +384,13 @@ public class Implementor implements Impler, JarImpler {
      * @return output string.
      */
     private String encode(String s) {
-        return s.chars().mapToObj(c -> String.format("\\u%04X", c)).collect(Collectors.joining());
+        return s.chars().mapToObj(c -> String.format("\\u%04x", c)).collect(Collectors.joining());
     }
 
     /**
-     * Compile class that
+     * Compiles the java file located at the specified path.
      *
-     * @param token type token of interface.
+     * @param token type token to create implementation for.
      * @param root  path to class implementation.
      * @throws ImplerException when implementation cannot be generated.
      */
@@ -406,19 +407,23 @@ public class Implementor implements Impler, JarImpler {
     }
 
     /**
-     * @param token type token of interface.
+     * Generates full path to java file.
+     *
+     * @param token type token to create implementation for.
      * @param root  path to class implementation.
-     * @return full java class path.
+     * @return full path to java file.
      */
     private static Path getFullImplPath(final Class<?> token, final Path root) {
         return root.resolve(pathFromExecDirWithoutExt(token) + ".java");
     }
 
     /**
-     * @param token type token of interface.
+     * Generates relative path to java class.
+     *
+     * @param token type token to create implementation for.
      * @return path from execution directory to java class.
      */
-    private static String pathFromExecDirWithoutExt(Class<?> token) {
+    private static String pathFromExecDirWithoutExt(final Class<?> token) {
         return packageStringPath(token) + FILE_SEPARATOR + classNameToString(token);
     }
 
@@ -426,7 +431,7 @@ public class Implementor implements Impler, JarImpler {
      * @param token type token of interface.
      * @return class path.
      */
-    private static String getClassPath(Class<?> token) {
+    private static String getClassPath(final Class<?> token) {
         try {
             return Path.of(token.getProtectionDomain().getCodeSource().getLocation().toURI()).toString();
         } catch (final URISyntaxException e) {
@@ -443,15 +448,15 @@ public class Implementor implements Impler, JarImpler {
      * @param temp    path to temporary directory with compiled classes.
      * @throws ImplerException when the type token implementation cannot be written to a file.
      */
-    private void createJar(Class<?> token, Path jarFile, Path temp) throws ImplerException {
-        Manifest manifest = new Manifest();
-        Attributes mainAttributes = manifest.getMainAttributes();
+    private void createJar(final Class<?> token, final Path jarFile, final Path temp) throws ImplerException {
+        final Manifest manifest = new Manifest();
+        final Attributes mainAttributes = manifest.getMainAttributes();
         mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        try (JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
-            String pathFromTemp = token.getPackageName().replace('.', '/') + '/' + classNameToString(token)+ ".class";
+        try (final JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
+            final String pathFromTemp = token.getPackageName().replace('.', '/') + '/' + classNameToString(token) + ".class";
             jarOutputStream.putNextEntry(new JarEntry(pathFromTemp));
             Files.copy(Path.of(temp.toString(), pathFromTemp), jarOutputStream);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ImplerException("Unable to write implementation in the file");
         }
     }
@@ -459,13 +464,13 @@ public class Implementor implements Impler, JarImpler {
     /**
      * Recursively removes a directory and its subdirectories.
      *
-     * @param dir directory to delete..
+     * @param dir directory to delete.
      * @return {@code true} if directory deleted successfully, otherwise {@code false}.
      */
-    private boolean deleteDirectory(File dir) {
-        File[] list = dir.listFiles();
+    private boolean deleteDirectory(final File dir) {
+        final File[] list = dir.listFiles();
         if (list != null) {
-            for (File file : list) {
+            for (final File file : list) {
                 deleteDirectory(file);
             }
         }
