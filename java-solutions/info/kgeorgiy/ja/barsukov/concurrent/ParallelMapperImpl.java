@@ -43,7 +43,8 @@ public class ParallelMapperImpl implements ParallelMapper {
                 wait();
             }
             final Runnable task = tasks.poll();
-            notifyAll();
+            // :NOTE: possibly redundant
+//            notifyAll();
             return task;
         }
 
@@ -54,7 +55,9 @@ public class ParallelMapperImpl implements ParallelMapper {
                 resultsHandler.set(i, result);
             };
             tasks.add(task);
-            notifyAll();
+            // :NOTE: notify?
+//            notifyAll();
+            notify();
         }
     }
 
