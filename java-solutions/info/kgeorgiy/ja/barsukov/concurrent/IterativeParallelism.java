@@ -1,6 +1,7 @@
 package info.kgeorgiy.ja.barsukov.concurrent;
 
 import info.kgeorgiy.java.advanced.concurrent.ScalarIP;
+import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,6 +16,16 @@ import java.util.stream.Stream;
  * Class for processing lists in multiple threads.
  */
 public class IterativeParallelism implements ScalarIP {
+
+    private ParallelMapper mapper;
+
+    public IterativeParallelism() {
+    }
+
+    public IterativeParallelism(final ParallelMapper mapper) {
+        this.mapper = mapper;
+    }
+
     private static <T> List<Stream<? extends T>> split(final int threads, final List<? extends T> values) {
         final int partsSize = values.size() / threads;
         int remainder = values.size() % threads;
@@ -31,11 +42,16 @@ public class IterativeParallelism implements ScalarIP {
         return parts;
     }
 
-    private static <T, R> R execute(final List<Stream<? extends T>> parts, final Function<Stream<? extends T>, R> process,
+    private <T, R> R execute(final List<Stream<? extends T>> parts, final Function<Stream<? extends T>, R> process,
             final Function<Stream<? extends R>, R> reduce) throws InterruptedException {
-        final List<R> results = new ArrayList<>(Collections.nCopies(parts.size(), null));
-        final List<Thread> threads = createThreads(parts, process, results);
-        joinAll(threads);
+        final List<R> results;
+        if (mapper == null) {
+            results = new ArrayList<>(Collections.nCopies(parts.size(), null));
+            final List<Thread> threads = createThreads(parts, process, results);
+            joinAll(threads);
+        } else {
+            results = mapper.map(process, parts);
+        }
         return reduce.apply(results.stream());
     }
 
@@ -48,13 +64,19 @@ public class IterativeParallelism implements ScalarIP {
         }).toList();
     }
 
-    private static void joinAll(final List<Thread> threads) throws InterruptedException {
+    /**
+     * Joins all given threads.
+     *
+     * @param threads threads to join.
+     * @throws InterruptedException when join is interrupted.
+     */
+    public static void joinAll(final List<Thread> threads) throws InterruptedException {
         for (final Thread thread : threads) {
             thread.join();
         }
     }
 
-    private static  <T, R> R execute(final int threads, final List<? extends T> values,
+    private <T, R> R execute(final int threads, final List<? extends T> values,
             final Function<Stream<? extends T>, R> process,
             final Function<Stream<? extends R>, R> reduce) throws InterruptedException {
         return execute(split(threads, values), process, reduce);
@@ -68,14 +90,12 @@ public class IterativeParallelism implements ScalarIP {
     /**
      * Returns maximum value.
      *
-     * @param threads number or concurrent threads.
-     * @param values values to get maximum of.
+     * @param threads    number or concurrent threads.
+     * @param values     values to get maximum of.
      * @param comparator value comparator.
-     * @param <T> value type.
-     *
+     * @param <T>        value type.
      * @return maximum of given values
-     *
-     * @throws InterruptedException if executing thread was interrupted.
+     * @throws InterruptedException             if executing thread was interrupted.
      * @throws java.util.NoSuchElementException if no values are given.
      */
     @Override
@@ -87,14 +107,12 @@ public class IterativeParallelism implements ScalarIP {
     /**
      * Returns minimum value.
      *
-     * @param threads number or concurrent threads.
-     * @param values values to get minimum of.
+     * @param threads    number or concurrent threads.
+     * @param values     values to get minimum of.
      * @param comparator value comparator.
-     * @param <T> value type.
-     *
+     * @param <T>        value type.
      * @return minimum of given values
-     *
-     * @throws InterruptedException if executing thread was interrupted.
+     * @throws InterruptedException             if executing thread was interrupted.
      * @throws java.util.NoSuchElementException if no values are given.
      */
     @Override
@@ -106,13 +124,11 @@ public class IterativeParallelism implements ScalarIP {
     /**
      * Returns whether all values satisfies predicate.
      *
-     * @param threads number or concurrent threads.
-     * @param values values to test.
+     * @param threads   number or concurrent threads.
+     * @param values    values to test.
      * @param predicate test predicate.
-     * @param <T> value type.
-     *
+     * @param <T>       value type.
      * @return whether all values satisfies predicate or {@code true}, if no values are given
-     *
      * @throws InterruptedException if executing thread was interrupted.
      */
     @Override
@@ -125,13 +141,11 @@ public class IterativeParallelism implements ScalarIP {
     /**
      * Returns whether any of values satisfies predicate.
      *
-     * @param threads number or concurrent threads.
-     * @param values values to test.
+     * @param threads   number or concurrent threads.
+     * @param values    values to test.
      * @param predicate test predicate.
-     * @param <T> value type.
-     *
+     * @param <T>       value type.
      * @return whether any value satisfies predicate or {@code false}, if no values are given
-     *
      * @throws InterruptedException if executing thread was interrupted.
      */
     @Override
