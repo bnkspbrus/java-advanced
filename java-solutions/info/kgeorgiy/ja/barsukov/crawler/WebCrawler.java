@@ -90,6 +90,7 @@ public class WebCrawler implements Crawler, AdvancedCrawler {
     }
 
     @Override
+    // :NOTE: почитать как закрывать тредпуллы
     public void close() {
         downloaders.shutdown();
         extractors.shutdown();
