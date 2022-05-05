@@ -9,10 +9,7 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Phaser;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static java.lang.Integer.parseInt;
 
@@ -25,6 +22,8 @@ public class HelloUDPServer implements HelloServer {
     }
 
     Phaser phaser;
+
+    CountDownLatch latch;
 
     private static final String USAGE = "Usage:\njava HelloUDPServer port threads";
 
@@ -48,16 +47,19 @@ public class HelloUDPServer implements HelloServer {
             distributor = Executors.newSingleThreadExecutor();
             final int receiveBufferSize = socket.getReceiveBufferSize();
             phaser = new Phaser(1);
+            latch = new CountDownLatch(1);
             distributor.execute(() -> {
                 try {
-                    while (!Thread.interrupted()) {
+                    while (!socket.isClosed()) {
                         final DatagramPacket request = new DatagramPacket(new byte[receiveBufferSize],
                                 receiveBufferSize);
                         socket.receive(request);
                         phaser.register();
-                        workers.submit(new ResponseWorker(request));
+                        workers.execute(new ResponseWorker(request));
                     }
                 } catch (IOException ignored) {
+                } finally {
+                    latch.countDown();
                 }
             });
         } catch (SocketException e) {
@@ -77,13 +79,11 @@ public class HelloUDPServer implements HelloServer {
             try {
                 String requestMessage = new String(request.getData(), request.getOffset(), request.getLength(),
                         StandardCharsets.UTF_8);
-                System.out.printf("Received: %s%n", requestMessage);
                 String responseMessage = String.format("Hello, %s", requestMessage);
                 byte[] buf = responseMessage.getBytes(StandardCharsets.UTF_8);
                 DatagramPacket response = new DatagramPacket(buf, buf.length, request.getAddress(), request.getPort());
                 try {
                     socket.send(response);
-                    System.out.printf("Sent: %s%n", responseMessage);
                 } catch (IOException ignored) {
                 }
             } finally {
@@ -94,11 +94,13 @@ public class HelloUDPServer implements HelloServer {
 
     @Override
     public void close() {
-        if (socket == null) {
-            return;
-        }
         socket.close();
         distributor.shutdown();
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            System.out.println("Unable to shutdown distributor");
+        }
         workers.shutdown();
         phaser.arriveAndAwaitAdvance();
     }
