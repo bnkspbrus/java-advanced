@@ -94,6 +94,9 @@ public class HelloUDPServer implements HelloServer {
 
     @Override
     public void close() {
+        if (socket == null) {
+            return;
+        }
         socket.close();
         distributor.shutdown();
         workers.shutdown();

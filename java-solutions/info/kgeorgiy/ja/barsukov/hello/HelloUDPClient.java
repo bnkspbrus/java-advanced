@@ -83,7 +83,7 @@ public class HelloUDPClient implements HelloClient {
                     System.out.printf("Sent: %s%n", requestMessage);
                     byte[] buf = requestMessage.getBytes(StandardCharsets.UTF_8);
                     DatagramPacket request = new DatagramPacket(buf, buf.length, address, port);
-                    while (!socket.isClosed() && !Thread.interrupted()) {
+                    while (!Thread.interrupted()) {
                         try {
                             socket.send(request);
                             DatagramPacket response = new DatagramPacket(new byte[receiveBufferSize],
