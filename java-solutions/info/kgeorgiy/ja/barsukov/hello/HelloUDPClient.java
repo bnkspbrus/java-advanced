@@ -91,8 +91,10 @@ public class HelloUDPClient implements HelloClient {
                             socket.receive(response);
                             String responseMessage = new String(response.getData(), response.getOffset(),
                                     response.getLength(), StandardCharsets.UTF_8);
-                            System.out.printf("Received: %s%n", responseMessage);
-                            break;
+                            if (responseMessage.contains(requestMessage)) {
+                                System.out.printf("Received: %s%n", responseMessage);
+                                break;
+                            }
 
                         } catch (IOException ignored) {
                         }
