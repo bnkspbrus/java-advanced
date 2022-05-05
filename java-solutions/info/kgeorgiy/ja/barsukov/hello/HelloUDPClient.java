@@ -16,7 +16,7 @@ import static java.lang.Integer.parseInt;
 
 public class HelloUDPClient implements HelloClient {
 
-    private static final int TIMEOUT = 500;
+    private static final int TIMEOUT = 200;
 
     private int requests;
     private String prefix;
