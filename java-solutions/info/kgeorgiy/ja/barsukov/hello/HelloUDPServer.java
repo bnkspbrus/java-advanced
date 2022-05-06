@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -15,19 +14,17 @@ import static java.lang.Integer.parseInt;
 
 public class HelloUDPServer implements HelloServer {
 
-    private ExecutorService distributor, workers;
+    private ExecutorService workers;
 
     private static boolean hasNull(String[] args) {
         return Arrays.stream(args).anyMatch(Objects::isNull);
     }
 
-    Phaser phaser;
-
-    CountDownLatch latch;
-
-    private static final String USAGE = "Usage:\njava HelloUDPServer port threads";
+    private CountDownLatch latch;
 
     private DatagramSocket socket;
+
+    private static final String USAGE = "Usage:\njava HelloUDPServer port threads";
 
     public static void main(String[] args) {
         if (args == null || args.length != 2 || hasNull(args)) {
@@ -44,50 +41,45 @@ public class HelloUDPServer implements HelloServer {
         try {
             socket = new DatagramSocket(port);
             workers = Executors.newFixedThreadPool(threads);
-            distributor = Executors.newSingleThreadExecutor();
-            final int receiveBufferSize = socket.getReceiveBufferSize();
-            phaser = new Phaser(1);
-            latch = new CountDownLatch(1);
-            distributor.execute(() -> {
-                try {
-                    while (!socket.isClosed()) {
-                        final DatagramPacket request = new DatagramPacket(new byte[receiveBufferSize],
-                                receiveBufferSize);
-                        socket.receive(request);
-                        phaser.register();
-                        workers.execute(new ResponseWorker(request));
-                    }
-                } catch (IOException ignored) {
-                } finally {
-                    latch.countDown();
-                }
-            });
+            latch = new CountDownLatch(threads);
+            for (int i = 0; i < threads; i++) {
+                workers.execute(new ResponseWorker(socket));
+            }
         } catch (SocketException e) {
             System.out.println(e.getMessage());
         }
     }
 
     class ResponseWorker implements Runnable {
-        final DatagramPacket request;
 
-        ResponseWorker(DatagramPacket request) {
-            this.request = request;
+        final DatagramSocket socket;
+
+        ResponseWorker(DatagramSocket socket) {
+            this.socket = socket;
         }
 
         @Override
         public void run() {
             try {
-                String requestMessage = new String(request.getData(), request.getOffset(), request.getLength(),
-                        StandardCharsets.UTF_8);
-                String responseMessage = String.format("Hello, %s", requestMessage);
-                byte[] buf = responseMessage.getBytes(StandardCharsets.UTF_8);
-                DatagramPacket response = new DatagramPacket(buf, buf.length, request.getAddress(), request.getPort());
-                try {
-                    socket.send(response);
-                } catch (IOException ignored) {
+                while (!Thread.interrupted()) {
+                    DatagramPacket request = HelloUDPClient.newEmptyReceivePacket(socket);;
+                    socket.receive(request);
+                    String requestMessage = HelloUDPClient.convertDataToString(request);
+//                    System.out.printf("Received: %s%n", requestMessage);
+                    String responseMessage = String.format("Hello, %s", requestMessage);
+                    DatagramPacket response = HelloUDPClient.newMessageSendPacket(responseMessage, request.getAddress(),
+                            request.getPort());
+                    try {
+                        socket.send(response);
+//                        System.out.printf("Sent: %s%n", responseMessage);
+                    } catch (IOException e) {
+                        System.out.println(e.getMessage());
+                    }
                 }
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
             } finally {
-                phaser.arriveAndDeregister();
+                latch.countDown();
             }
         }
     }
@@ -95,13 +87,11 @@ public class HelloUDPServer implements HelloServer {
     @Override
     public void close() {
         socket.close();
-        distributor.shutdown();
+        workers.shutdown();
         try {
             latch.await();
         } catch (InterruptedException e) {
-            System.out.println("Unable to shutdown distributor");
+            System.out.println(e.getMessage());
         }
-        workers.shutdown();
-        phaser.arriveAndAwaitAdvance();
     }
 }

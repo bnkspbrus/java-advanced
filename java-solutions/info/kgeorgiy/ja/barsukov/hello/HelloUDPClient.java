@@ -53,9 +53,9 @@ public class HelloUDPClient implements HelloClient {
             throw new RuntimeException(e);
         }
         latch = new CountDownLatch(threads);
-        ExecutorService exec = Executors.newFixedThreadPool(threads);
-        IntStream.range(0, threads).forEach(threadId -> exec.execute(new RequestWorker(threadId)));
-        exec.shutdown();
+        ExecutorService workers = Executors.newFixedThreadPool(threads);
+        IntStream.range(0, threads).forEach(threadId -> workers.execute(new RequestWorker(threadId)));
+        workers.shutdown();
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -76,36 +76,48 @@ public class HelloUDPClient implements HelloClient {
         public void run() {
             try (DatagramSocket socket = new DatagramSocket()) {
                 socket.setSoTimeout(TIMEOUT);
-                int receiveBufferSize = socket.getReceiveBufferSize();
                 for (int requestId = 0; requestId < requests; requestId++) {
 
                     String requestMessage = createMessage(prefix, threadId, requestId);
                     System.out.printf("Sent: %s%n", requestMessage);
-                    byte[] buf = requestMessage.getBytes(StandardCharsets.UTF_8);
-                    DatagramPacket request = new DatagramPacket(buf, buf.length, address, port);
+                    DatagramPacket request = newMessageSendPacket(requestMessage, address, port);
                     while (!Thread.interrupted()) {
                         try {
                             socket.send(request);
-                            DatagramPacket response = new DatagramPacket(new byte[receiveBufferSize],
-                                    receiveBufferSize);
+                            DatagramPacket response = newEmptyReceivePacket(socket);
                             socket.receive(response);
-                            String responseMessage = new String(response.getData(), response.getOffset(),
-                                    response.getLength(), StandardCharsets.UTF_8);
-                            if (responseMessage.contains(requestMessage)) {
+                            String responseMessage = convertDataToString(response);
+                            if (responseMessage.endsWith(requestMessage)) {
                                 System.out.printf("Received: %s%n", responseMessage);
                                 break;
                             }
 
-                        } catch (IOException ignored) {
+                        } catch (IOException e) {
+                            System.out.println(e.getMessage());
                         }
                     }
                 }
             } catch (SocketException e) {
                 System.err.println("Unable to establish a connection: " + e.getMessage());
+            } finally {
+                latch.countDown();
             }
-            latch.countDown();
         }
     }
+    public static String convertDataToString(DatagramPacket response) {
+        return new String(response.getData(), response.getOffset(), response.getLength(), StandardCharsets.UTF_8);
+    }
+
+    public static DatagramPacket newMessageSendPacket(String message, InetAddress address, int port) {
+        byte[] buf = message.getBytes(StandardCharsets.UTF_8);
+        return new DatagramPacket(buf, buf.length, address, port);
+    }
+
+    public static DatagramPacket newEmptyReceivePacket(DatagramSocket socket) throws SocketException {
+        byte[] buf = new byte[socket.getReceiveBufferSize()];
+        return new DatagramPacket(buf, buf.length);
+    }
+
 
     private static String createMessage(String prefix, int threadId, int requestId) {
         return String.format("%s%d_%d", prefix, threadId, requestId);
