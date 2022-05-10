@@ -55,6 +55,7 @@ public class HelloUDPClient implements HelloClient {
         latch = new CountDownLatch(threads);
         ExecutorService workers = Executors.newFixedThreadPool(threads);
         IntStream.range(0, threads).forEach(threadId -> workers.execute(new RequestWorker(threadId)));
+        // :NOTE: защелка усложняет логику, можно проще
         workers.shutdown();
         try {
             latch.await();

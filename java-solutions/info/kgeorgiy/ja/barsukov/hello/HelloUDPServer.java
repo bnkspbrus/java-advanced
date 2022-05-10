@@ -20,6 +20,7 @@ public class HelloUDPServer implements HelloServer {
         return Arrays.stream(args).anyMatch(Objects::isNull);
     }
 
+    // :NOTE: опять же, защелка тут не нужна - у ExecutorService есть требуемый функционал
     private CountDownLatch latch;
 
     private DatagramSocket socket;
@@ -66,6 +67,9 @@ public class HelloUDPServer implements HelloServer {
                     socket.receive(request);
                     String requestMessage = HelloUDPClient.convertDataToString(request);
 //                    System.out.printf("Received: %s%n", requestMessage);
+                    // :NOTE: Несмотря на то, что текущий способ получения ответа по запросу очень прост,
+                    // сервер должен быть рассчитан на ситуацию,
+                    // когда этот процесс может требовать много ресурсов и времени.
                     String responseMessage = String.format("Hello, %s", requestMessage);
                     DatagramPacket response = HelloUDPClient.newMessageSendPacket(responseMessage, request.getAddress(),
                             request.getPort());
@@ -84,6 +88,7 @@ public class HelloUDPServer implements HelloServer {
         }
     }
 
+    // :NOTE: повторные вызовы run и одиночный вызов close закроют только последний сокет - утечка
     @Override
     public void close() {
         socket.close();
