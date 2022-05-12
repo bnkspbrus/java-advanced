@@ -12,12 +12,13 @@ import java.util.concurrent.Semaphore;
 
 import static info.kgeorgiy.ja.barsukov.hello.HelloUDPUtil.*;
 import static java.lang.Integer.parseInt;
+import static java.lang.Math.max;
 
 public class HelloUDPServer implements HelloServer {
 
     private ExecutorService receivers, senders;
 
-    private int MAX_UNSENT_MESSAGE_COUNT;
+    private static final int MAX_UNSENT_MESSAGE_COUNT = 100000;
     private DatagramSocket socket;
 
     private Semaphore semaphore;
@@ -39,9 +40,9 @@ public class HelloUDPServer implements HelloServer {
         try {
             semaphore = new Semaphore(MAX_UNSENT_MESSAGE_COUNT);
             socket = new DatagramSocket(port);
-            receivers = Executors.newFixedThreadPool(threads / 2);
-            senders = Executors.newFixedThreadPool(threads - threads / 2);
-            for (int i = 0; i < threads / 2; i++) {
+            receivers = Executors.newFixedThreadPool(max(threads / 2, 1));
+            senders = Executors.newFixedThreadPool(max(threads - threads / 2, 1));
+            for (int i = 0; i < max(threads / 2, 1); i++) {
                 receivers.execute(new ReceiveWorker());
             }
         } catch (SocketException e) {
@@ -103,5 +104,6 @@ public class HelloUDPServer implements HelloServer {
     public void close() {
         socket.close();
         awaitTermination(receivers);
+        awaitTermination(senders);
     }
 }

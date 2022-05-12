@@ -34,3 +34,21 @@ _*
 
 !/java-solutions/info/kgeorgiy/ja/barsukov
 
+/java-solutions/info/kgeorgiy/ja/barsukov/implementor/*
+!/java-solutions/info/kgeorgiy/ja/barsukov/implementor/Implementor.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/implementor/Implementor.jar
+
+/java-solutions/info/kgeorgiy/ja/barsukov/concurrent/*
+!/java-solutions/info/kgeorgiy/ja/barsukov/concurrent/IterativeParallelism.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/concurrent/ParallelMapperImpl.java.java
+
+/java-solutions/info/kgeorgiy/ja/barsukov/crawler/*
+!/java-solutions/info/kgeorgiy/ja/barsukov/crawler/WebCrawler.java
+
+/java-solutions/info/kgeorgiy/ja/barsukov/hello/*
+!/java-solutions/info/kgeorgiy/ja/barsukov/hello/HelloUDPClient.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/hello/HelloUDPServer.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/hello/HelloUDPUtil.java
+
+#/java-solutions/info/kgeorgiy/ja/barsukov/rmi/*
+
