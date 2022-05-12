@@ -73,6 +73,7 @@ public class Tester {
         assertNotNull(a2);
         Account a4 = getAccount(bank, p4, "12", false);
         assertNull(a4);
+        createAccount(bank, p4, "12", false);
         p1 = bank.getPerson("1", true);
         a1 = getAccount(bank, p1, "12", true);
         assertEquals(a1.getAmount(), 0);
@@ -82,6 +83,10 @@ public class Tester {
         assertEquals(a3.getAmount(), a1.getAmount());
         a2 = getAccount(bank, p2, "12", false);
         assertNotEquals(a1.getAmount(), a2.getAmount());
+        a2.setAmount(a2.getAmount() + 100);
+        assertEquals(a2.getAmount(), 100);
+        a4 = getAccount(bank, p4, "12", false);
+        assertEquals(a4.getAmount(), 0);
     }
 
     private static void equalsPerson(Person p1, Person p2) throws RemoteException {
