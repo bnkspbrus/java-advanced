@@ -6,29 +6,26 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 
+import static info.kgeorgiy.ja.barsukov.hello.HelloUDPUtil.*;
 import static java.lang.Integer.parseInt;
 
 public class HelloUDPServer implements HelloServer {
 
-    private ExecutorService workers;
+    private ExecutorService receivers, senders;
 
-    private static boolean hasNull(String[] args) {
-        return Arrays.stream(args).anyMatch(Objects::isNull);
-    }
-
-    // :NOTE: опять же, защелка тут не нужна - у ExecutorService есть требуемый функционал
-    private CountDownLatch latch;
-
+    private int MAX_UNSENT_MESSAGE_COUNT;
     private DatagramSocket socket;
 
-    private static final String USAGE = "Usage:\njava HelloUDPServer port threads";
+    private Semaphore semaphore;
+
+    private static final String USAGE = "Usage:\njava HelloUDPServer <port> <threads>";
 
     public static void main(String[] args) {
-        if (args == null || args.length != 2 || hasNull(args)) {
+        if (args == null || args.length != 2 || anyMatchNull(args)) {
             System.err.println(USAGE);
             return;
         }
@@ -40,63 +37,71 @@ public class HelloUDPServer implements HelloServer {
     @Override
     public void start(int port, int threads) {
         try {
+            semaphore = new Semaphore(MAX_UNSENT_MESSAGE_COUNT);
             socket = new DatagramSocket(port);
-            workers = Executors.newFixedThreadPool(threads);
-            latch = new CountDownLatch(threads);
-            for (int i = 0; i < threads; i++) {
-                workers.execute(new ResponseWorker(socket));
+            receivers = Executors.newFixedThreadPool(threads / 2);
+            senders = Executors.newFixedThreadPool(threads - threads / 2);
+            for (int i = 0; i < threads / 2; i++) {
+                receivers.execute(new ReceiveWorker());
             }
         } catch (SocketException e) {
             System.out.println(e.getMessage());
         }
     }
 
-    class ResponseWorker implements Runnable {
+    class SendWorker implements Runnable {
 
-        final DatagramSocket socket;
+        private final DatagramPacket request;
 
-        ResponseWorker(DatagramSocket socket) {
-            this.socket = socket;
+        SendWorker(DatagramPacket request) {
+            this.request = request;
         }
 
         @Override
         public void run() {
             try {
-                while (!Thread.interrupted()) {
-                    DatagramPacket request = HelloUDPClient.newEmptyReceivePacket(socket);;
-                    socket.receive(request);
-                    String requestMessage = HelloUDPClient.convertDataToString(request);
-//                    System.out.printf("Received: %s%n", requestMessage);
-                    // :NOTE: Несмотря на то, что текущий способ получения ответа по запросу очень прост,
-                    // сервер должен быть рассчитан на ситуацию,
-                    // когда этот процесс может требовать много ресурсов и времени.
-                    String responseMessage = String.format("Hello, %s", requestMessage);
-                    DatagramPacket response = HelloUDPClient.newMessageSendPacket(responseMessage, request.getAddress(),
-                            request.getPort());
-                    try {
-                        socket.send(response);
-//                        System.out.printf("Sent: %s%n", responseMessage);
-                    } catch (IOException e) {
-                        System.out.println(e.getMessage());
-                    }
-                }
-            } catch (IOException e) {
-                System.out.println(e.getMessage());
+                String requestMessage = convertDataToString(request);
+                String responseMessage = String.format("Hello, %s", requestMessage);
+                DatagramPacket response = newMessageSendPacket(responseMessage, request.getAddress(),
+                        request.getPort());
+                socket.send(response);
+            } catch (IOException ignored) {
+
             } finally {
-                latch.countDown();
+                semaphore.release();
             }
         }
     }
 
-    // :NOTE: повторные вызовы run и одиночный вызов close закроют только последний сокет - утечка
+    class ReceiveWorker implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                while (!Thread.interrupted()) {
+                    try {
+                        semaphore.acquire();
+                        DatagramPacket request = newEmptyReceivePacket(socket);
+                        try {
+                            socket.receive(request);
+                            senders.execute(new SendWorker(request));
+                        } catch (IOException e) {
+                            System.out.println(e.getMessage());
+                        }
+                    } catch (InterruptedException e) {
+                        System.out.println("ReceiveWorker interrupted");
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            } catch (SocketException e) {
+                System.out.println(e.getMessage());
+            }
+        }
+    }
+
     @Override
     public void close() {
         socket.close();
-        workers.shutdown();
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            System.out.println(e.getMessage());
-        }
+        awaitTermination(receivers);
     }
 }

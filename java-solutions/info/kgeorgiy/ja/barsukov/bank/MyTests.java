@@ -12,14 +12,14 @@ import java.rmi.server.UnicastRemoteObject;
 
 import static org.junit.Assert.*;
 
-public class Tester {
+public class MyTests {
     private final static int DEFAULT_PORT = 8888;
     private static Bank bank;
 
     public static void main(String[] args) {
         JUnitCore jUnitCore = new JUnitCore();
         jUnitCore.addListener(new TextListener(System.out));
-        jUnitCore.run(Tester.class);
+        jUnitCore.run(MyTests.class);
         System.exit(0);
     }
 
