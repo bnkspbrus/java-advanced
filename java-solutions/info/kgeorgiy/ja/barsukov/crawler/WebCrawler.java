@@ -29,7 +29,7 @@ public class WebCrawler implements Crawler, AdvancedCrawler {
 
     private final int perHost;
 
-    private static int EXTRA_THREADS = 5;
+    private static int EXTRA_THREADS = 6;
 
     public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
         int downloadMaximumPoolSize = Math.max(downloaders - EXTRA_THREADS, 1);
@@ -89,11 +89,22 @@ public class WebCrawler implements Crawler, AdvancedCrawler {
         return null;
     }
 
+    private static void awaitTermination(ExecutorService workers) {
+        workers.shutdown();
+        try {
+            if (!workers.awaitTermination(30, TimeUnit.SECONDS)) {
+                workers.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            workers.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
     @Override
-    // :NOTE: почитать как закрывать тредпуллы
     public void close() {
-        downloaders.shutdown();
-        extractors.shutdown();
+        awaitTermination(downloaders);
+        awaitTermination(extractors);
     }
 
     @Override
@@ -102,12 +113,12 @@ public class WebCrawler implements Crawler, AdvancedCrawler {
         return download(url, depth, false);
     }
 
-    private static boolean hasNull(String[] args) {
+    private static boolean anyMatchNull(String[] args) {
         return Arrays.stream(args).anyMatch(Objects::isNull);
     }
 
     public static void main(String[] args) {
-        if (args == null || args.length < 1 || args.length > 5 || hasNull(args)) {
+        if (args == null || args.length < 1 || args.length > 5 || anyMatchNull(args)) {
             System.err.println(USAGE);
             return;
         }
@@ -203,6 +214,7 @@ public class WebCrawler implements Crawler, AdvancedCrawler {
                 }
             } catch (InterruptedException ignored) {
                 System.out.println("Downloader interrupted");
+                Thread.currentThread().interrupt();
             } finally {
                 phaser.arriveAndDeregister();
             }
