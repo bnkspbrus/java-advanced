@@ -20,6 +20,7 @@ public class Tester {
         JUnitCore jUnitCore = new JUnitCore();
         jUnitCore.addListener(new TextListener(System.out));
         jUnitCore.run(Tester.class);
+        // :NOTE: exit(0)
         System.exit(0);
     }
 
@@ -34,6 +35,7 @@ public class Tester {
         } catch (final RemoteException e) {
             System.out.println("Cannot export object: " + e.getMessage());
             e.printStackTrace();
+            // :NOTE: exit(1)
             System.exit(1);
         }
     }
@@ -88,6 +90,8 @@ public class Tester {
         a4 = getAccount(bank, p4, "12", false);
         assertEquals(a4.getAmount(), 0);
     }
+
+    // :NOTE: тесты на многопоточность
 
     private static void equalsPerson(Person p1, Person p2) throws RemoteException {
         assertEquals(p1.getPassportId(), p2.getPassportId());
