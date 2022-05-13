@@ -29,7 +29,7 @@ public class WebCrawler implements Crawler, AdvancedCrawler {
 
     private final int perHost;
 
-    private static int EXTRA_THREADS = 6;
+    private static int EXTRA_THREADS = 7;
 
     public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
         int downloadMaximumPoolSize = Math.max(downloaders - EXTRA_THREADS, 1);
@@ -92,7 +92,7 @@ public class WebCrawler implements Crawler, AdvancedCrawler {
     private static void awaitTermination(ExecutorService workers) {
         workers.shutdown();
         try {
-            if (!workers.awaitTermination(30, TimeUnit.SECONDS)) {
+            if (!workers.awaitTermination(10, TimeUnit.SECONDS)) {
                 workers.shutdownNow();
             }
         } catch (InterruptedException e) {
