@@ -11,7 +11,7 @@ import java.util.stream.IntStream;
 import static java.lang.Integer.parseInt;
 
 public class WebCrawler implements Crawler, AdvancedCrawler {
-
+    // :NOTE: модификаторы доступа
     final Set<String> downloaded = ConcurrentHashMap.newKeySet();
     final Set<String> marked = ConcurrentHashMap.newKeySet();
 
@@ -29,6 +29,7 @@ public class WebCrawler implements Crawler, AdvancedCrawler {
 
     private final int perHost;
 
+    // :NOTE: чего???
     private static int EXTRA_THREADS = 7;
 
     public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
