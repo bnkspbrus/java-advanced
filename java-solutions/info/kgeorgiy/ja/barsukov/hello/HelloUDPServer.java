@@ -18,7 +18,7 @@ public class HelloUDPServer implements HelloServer {
 
     private ExecutorService receivers, senders;
 
-    private static final int MAX_UNSENT_MESSAGE_COUNT = 100000;
+    private static final int MAX_UNSENT_MESSAGE_COUNT = Integer.MAX_VALUE;
     private DatagramSocket socket;
 
     private Semaphore semaphore;
