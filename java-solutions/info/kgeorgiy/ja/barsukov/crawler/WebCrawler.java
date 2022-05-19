@@ -11,17 +11,16 @@ import java.util.stream.IntStream;
 import static java.lang.Integer.parseInt;
 
 public class WebCrawler implements Crawler, AdvancedCrawler {
-    // :NOTE: модификаторы доступа
-    final Set<String> downloaded = ConcurrentHashMap.newKeySet();
-    final Set<String> marked = ConcurrentHashMap.newKeySet();
+    private final Set<String> downloaded = ConcurrentHashMap.newKeySet();
+    private final Set<String> marked = ConcurrentHashMap.newKeySet();
 
-    final Map<String, Semaphore> semaphores = new HashMap<>();
+    private final Map<String, Semaphore> semaphores = new HashMap<>();
 
-    final Queue<String> newLayer = new ConcurrentLinkedQueue<>();
+    private final Queue<String> newLayer = new ConcurrentLinkedQueue<>();
 
-    final ConcurrentMap<String, IOException> errors = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, IOException> errors = new ConcurrentHashMap<>();
 
-    final Downloader downloader;
+    private final Downloader downloader;
 
     private static final String USAGE = "Usage:\njava WebCrawler url [depth [downloads [extractors [perHost]]]]";
 
@@ -29,16 +28,11 @@ public class WebCrawler implements Crawler, AdvancedCrawler {
 
     private final int perHost;
 
-    // :NOTE: чего???
-    private static int EXTRA_THREADS = 7;
-
     public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
-        int downloadMaximumPoolSize = Math.max(downloaders - EXTRA_THREADS, 1);
-        int extractMaximumPoolSize = Math.max(extractors - EXTRA_THREADS, 1);
         this.downloader = downloader;
-        this.downloaders = new ThreadPoolExecutor(downloadMaximumPoolSize, downloadMaximumPoolSize, 0L, TimeUnit.MILLISECONDS,
+        this.downloaders = new ThreadPoolExecutor(downloaders, downloaders, 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(), new ThreadPoolExecutor.CallerRunsPolicy());
-        this.extractors = new ThreadPoolExecutor(extractMaximumPoolSize, extractMaximumPoolSize, 0L, TimeUnit.MILLISECONDS,
+        this.extractors = new ThreadPoolExecutor(extractors, extractors, 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(), new ThreadPoolExecutor.CallerRunsPolicy());
         this.perHost = perHost;
     }
