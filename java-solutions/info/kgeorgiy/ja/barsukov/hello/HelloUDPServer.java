@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -63,11 +64,10 @@ public class HelloUDPServer implements HelloServer {
             try {
                 String requestMessage = convertDataToString(request);
                 String responseMessage = String.format("Hello, %s", requestMessage);
-                DatagramPacket response = newMessageSendPacket(responseMessage, request.getAddress(),
-                        request.getPort());
-                socket.send(response);
-            } catch (IOException ignored) {
-
+                request.setData(responseMessage.getBytes(StandardCharsets.UTF_8));
+                socket.send(request);
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
             } finally {
                 semaphore.release();
             }
