@@ -30,13 +30,12 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
     private void opRead(SelectionKey key) throws ClosedChannelException {
         DatagramChannel channel = (DatagramChannel) key.channel();
         try {
-            ByteBuffer buf = ByteBuffer.allocate(channel.socket().getReceiveBufferSize());
-            SocketAddress client = channel.receive(buf);
+            SocketAddress client = channel.receive(buffer.clear());
             DatagramChannel newChannel = DatagramChannel.open();
             try {
                 newChannel.configureBlocking(false);
                 newChannel.connect(client);
-                String msg = StandardCharsets.UTF_8.decode(buf.flip()).toString();
+                String msg = StandardCharsets.UTF_8.decode(buffer.flip()).toString();
                 newChannel.register(selector, SelectionKey.OP_WRITE, new Attachment(msg, client));
             } catch (IOException e) {
                 newChannel.close();
@@ -73,6 +72,8 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
 
     private ExecutorService executor;
 
+    private ByteBuffer buffer;
+
     @Override
     public void start(int port, int threads) {
         SocketAddress address = new InetSocketAddress(port);
@@ -81,6 +82,7 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
             listener = bindChannel(address);
             listener.configureBlocking(false);
             listener.register(selector, SelectionKey.OP_READ);
+            buffer = ByteBuffer.allocate(listener.socket().getReceiveBufferSize());
             executor = Executors.newSingleThreadExecutor();
             executor.execute(() -> {
                 try {
