@@ -65,7 +65,7 @@ public class HelloUDPNonblockingClient extends AbstractHelloUDPClient {
             ByteBuffer buf = ByteBuffer.allocate(channel.socket().getReceiveBufferSize());
             channel.receive(buf);
             String response = StandardCharsets.UTF_8.decode(buf.flip()).toString();
-            if (response.endsWith(msg)) {
+            if (response.contains(msg)) {
                 att.requestId++;
                 if (att.requestId == requests) {
                     channel.close();
