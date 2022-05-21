@@ -1,7 +1,5 @@
 package info.kgeorgiy.ja.barsukov.hello;
 
-import info.kgeorgiy.java.advanced.hello.HelloServer;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -12,10 +10,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 
 import static info.kgeorgiy.ja.barsukov.hello.HelloUDPUtil.*;
-import static java.lang.Integer.parseInt;
 import static java.lang.Math.max;
 
-public class HelloUDPServer implements HelloServer {
+public class HelloUDPServer extends AbstractHelloUDPServer {
 
     private ExecutorService receivers, senders;
 
@@ -27,13 +24,7 @@ public class HelloUDPServer implements HelloServer {
     private static final String USAGE = "Usage:\njava HelloUDPServer <port> <threads>";
 
     public static void main(String[] args) {
-        if (args == null || args.length != 2 || anyMatchNull(args)) {
-            System.err.println(USAGE);
-            return;
-        }
-        try (HelloServer server = new HelloUDPServer()) {
-            server.start(parseInt(args[0]), parseInt(args[1]));
-        }
+        parseAndRunArgs(new HelloUDPServer(), args);
     }
 
     @Override
@@ -62,7 +53,7 @@ public class HelloUDPServer implements HelloServer {
         @Override
         public void run() {
             try {
-                String requestMessage = convertDataToString(request);
+                String requestMessage = packetDataToString(request);
                 String responseMessage = String.format("Hello, %s", requestMessage);
                 request.setData(responseMessage.getBytes(StandardCharsets.UTF_8));
                 socket.send(request);

@@ -1,9 +1,8 @@
 package info.kgeorgiy.ja.barsukov.hello;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.io.IOException;
+import java.net.*;
+import java.nio.channels.DatagramChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
@@ -27,7 +26,7 @@ public class HelloUDPUtil {
             Thread.currentThread().interrupt();
         }
     }
-    public static String convertDataToString(DatagramPacket response) {
+    public static String packetDataToString(DatagramPacket response) {
         return new String(response.getData(), response.getOffset(), response.getLength(), StandardCharsets.UTF_8);
     }
 
@@ -44,5 +43,13 @@ public class HelloUDPUtil {
 
     public static String createMessage(String prefix, int threadId, int requestId) {
         return String.format("%s%d_%d", prefix, threadId, requestId);
+    }
+
+    public static DatagramChannel openChannel() throws IOException {
+        return DatagramChannel.open();
+    }
+
+    public static DatagramChannel bindChannel(SocketAddress local) throws IOException {
+        return openChannel().bind(local);
     }
 }

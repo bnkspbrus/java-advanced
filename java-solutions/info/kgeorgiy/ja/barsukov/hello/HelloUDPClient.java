@@ -1,7 +1,5 @@
 package info.kgeorgiy.ja.barsukov.hello;
 
-import info.kgeorgiy.java.advanced.hello.HelloClient;
-
 import java.io.IOException;
 import java.net.*;
 import java.util.concurrent.ExecutorService;
@@ -9,9 +7,8 @@ import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 import static info.kgeorgiy.ja.barsukov.hello.HelloUDPUtil.*;
-import static java.lang.Integer.parseInt;
 
-public class HelloUDPClient implements HelloClient {
+public class HelloUDPClient extends AbstractHelloUDPClient {
 
     private static final int TIMEOUT = 200;
 
@@ -21,14 +18,9 @@ public class HelloUDPClient implements HelloClient {
     private int port;
 
     private InetAddress address;
-    private static final String USAGE = "Usage:\njava HelloUDPClient name/ip port prefix threads requests";
 
     public static void main(String[] args) {
-        if (args == null || args.length != 5 || anyMatchNull(args)) {
-            System.err.println(USAGE);
-            return;
-        }
-        new HelloUDPClient().run(args[0], parseInt(args[1]), args[2], parseInt(args[3]), parseInt(args[4]));
+        parseArgsAndRun(new HelloUDPClient(), args);
     }
 
     @Override
@@ -68,7 +60,7 @@ public class HelloUDPClient implements HelloClient {
                             socket.send(request);
                             DatagramPacket response = newEmptyReceivePacket(socket);
                             socket.receive(response);
-                            String responseMessage = convertDataToString(response);
+                            String responseMessage = packetDataToString(response);
                             if (responseMessage.endsWith(requestMessage)) {
                                 System.out.printf("Received: %s%n", responseMessage);
                                 break;
