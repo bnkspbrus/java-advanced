@@ -84,7 +84,7 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
             executor = Executors.newSingleThreadExecutor();
             executor.execute(() -> {
                 try {
-                    while (!Thread.interrupted() && !listener.socket().isClosed()) {
+                    while (!Thread.interrupted() && listener.isOpen()) {
                         selector.select(TIMEOUT);
                         for (final Iterator<SelectionKey> i = selector.selectedKeys().iterator(); i.hasNext(); ) {
                             final SelectionKey key = i.next();
@@ -112,7 +112,6 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
 
     @Override
     public void close() {
-        listener.socket().close();
         try {
             listener.close();
         } catch (IOException e) {
