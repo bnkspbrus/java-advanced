@@ -7,12 +7,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
-import static info.kgeorgiy.ja.barsukov.hello.HelloUDPUtil.awaitTermination;
-import static info.kgeorgiy.ja.barsukov.hello.HelloUDPUtil.bindChannel;
+import static info.kgeorgiy.ja.barsukov.hello.HelloUDPUtil.*;
 
 public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
 
@@ -24,23 +24,17 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
 
     private static int TIMEOUT = 200;
 
-    private record Attachment(String msg, SocketAddress address) {
+    private Queue<RequestData> requests;
+
+    private record RequestData(String msg, SocketAddress address) {
     }
 
     private void opRead(SelectionKey key) throws ClosedChannelException {
         DatagramChannel channel = (DatagramChannel) key.channel();
         try {
-            SocketAddress client = channel.receive(buffer.clear());
-            DatagramChannel newChannel = DatagramChannel.open();
-            try {
-                newChannel.configureBlocking(false);
-                newChannel.connect(client);
-                String msg = StandardCharsets.UTF_8.decode(buffer.flip()).toString();
-                newChannel.register(selector, SelectionKey.OP_WRITE, new Attachment(msg, client));
-            } catch (IOException e) {
-                newChannel.close();
-                System.out.println(e.getMessage());
-            }
+            SocketAddress address = channel.receive(buffer.clear());
+            String msg = StandardCharsets.UTF_8.decode(buffer.flip()).toString();
+            requests.add(new RequestData(msg, address));
         } catch (IOException e) {
             System.out.println(e.getMessage());
         } finally {
@@ -50,27 +44,30 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
 
     private void opWrite(SelectionKey key) {
         DatagramChannel channel = (DatagramChannel) key.channel();
-        try {
-            Attachment att = (Attachment) key.attachment();
-            String response = String.format("Hello, %s", att.msg);
-            ByteBuffer buf = ByteBuffer.wrap(response.getBytes(StandardCharsets.UTF_8));
-            channel.send(buf, att.address);
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        } finally {
+        workers.execute(() -> {
             try {
-                channel.close();
+                RequestData data = requests.poll();
+                if (data != null) {
+                    String response = getResponseMessage(data.msg);
+                    ByteBuffer buf = ByteBuffer.wrap(response.getBytes(StandardCharsets.UTF_8));
+                    channel.send(buf, data.address);
+                }
             } catch (IOException e) {
-                System.out.println("Unable to close channel");
+                System.out.println(e.getMessage());
+            } finally {
+                try {
+                    channel.register(selector, SelectionKey.OP_WRITE);
+                } catch (ClosedChannelException ignored) {
+                }
             }
-        }
+        });
     }
 
     private Selector selector;
 
     private DatagramChannel listener;
 
-    private ExecutorService executor;
+    private ExecutorService single, workers;
 
     private ByteBuffer buffer;
 
@@ -82,9 +79,16 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
             listener = bindChannel(address);
             listener.configureBlocking(false);
             listener.register(selector, SelectionKey.OP_READ);
+            for (int i = 0; i < threads; i++) {
+                DatagramChannel channel = DatagramChannel.open();
+                channel.configureBlocking(false);
+                channel.register(selector, SelectionKey.OP_WRITE);
+            }
             buffer = ByteBuffer.allocate(listener.socket().getReceiveBufferSize());
-            executor = Executors.newSingleThreadExecutor();
-            executor.execute(() -> {
+            single = Executors.newSingleThreadExecutor();
+            workers = Executors.newFixedThreadPool(threads);
+            requests = new ConcurrentLinkedQueue<>();
+            single.execute(() -> {
                 try {
                     while (!Thread.interrupted() && listener.isOpen()) {
                         selector.select(TIMEOUT);
@@ -119,11 +123,19 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
         } catch (IOException e) {
             System.out.println("Unable to close channel");
         }
+        selector.keys().forEach(key -> {
+            try {
+                key.channel().close();
+            } catch (IOException e) {
+                System.out.println("Unable to close channel");
+            }
+        });
         try {
             selector.close();
         } catch (IOException e) {
             System.out.println("Unable to close selector");
         }
-        awaitTermination(executor);
+        awaitTermination(single);
+        awaitTermination(workers);
     }
 }

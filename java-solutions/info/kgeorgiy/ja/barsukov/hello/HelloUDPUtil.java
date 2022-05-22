@@ -41,8 +41,12 @@ public class HelloUDPUtil {
     }
 
 
-    public static String createMessage(String prefix, int threadId, int requestId) {
+    public static String getRequestMessage(String prefix, int threadId, int requestId) {
         return String.format("%s%d_%d", prefix, threadId, requestId);
+    }
+
+    public static String getResponseMessage(String requestMessage) {
+        return String.format("Hello, %s", requestMessage);
     }
 
     public static DatagramChannel openChannel() throws IOException {

@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Set;
 
-import static info.kgeorgiy.ja.barsukov.hello.HelloUDPUtil.createMessage;
+import static info.kgeorgiy.ja.barsukov.hello.HelloUDPUtil.getRequestMessage;
 
 public class HelloUDPNonblockingClient extends AbstractHelloUDPClient {
 
@@ -31,23 +31,10 @@ public class HelloUDPNonblockingClient extends AbstractHelloUDPClient {
         }
     }
 
-
-    private void opConnect(SelectionKey key) {
-        DatagramChannel channel = (DatagramChannel) key.channel();
-        Attachment att = (Attachment) key.attachment();
-        try {
-            channel.connect(address);
-            channel.register(selector, SelectionKey.OP_WRITE, att);
-        } catch (IOException e) {
-            System.err.printf("Unable to connect channel with threadId=%d to address=%s%n", att.threadId,
-                    address.toString());
-        }
-    }
-
     private void opWrite(SelectionKey key) {
         DatagramChannel channel = (DatagramChannel) key.channel();
         Attachment att = (Attachment) key.attachment();
-        String msg = createMessage(prefix, att.threadId, att.requestId);
+        String msg = getRequestMessage(prefix, att.threadId, att.requestId);
         ByteBuffer buf = ByteBuffer.wrap(msg.getBytes(StandardCharsets.UTF_8));
         try {
             channel.send(buf, address);
@@ -60,7 +47,7 @@ public class HelloUDPNonblockingClient extends AbstractHelloUDPClient {
     private void opRead(SelectionKey key) {
         DatagramChannel channel = (DatagramChannel) key.channel();
         Attachment att = (Attachment) key.attachment();
-        String msg = createMessage(prefix, att.threadId, att.requestId);
+        String msg = getRequestMessage(prefix, att.threadId, att.requestId);
         try {
             ByteBuffer buf = ByteBuffer.allocate(channel.socket().getReceiveBufferSize());
             channel.receive(buf);

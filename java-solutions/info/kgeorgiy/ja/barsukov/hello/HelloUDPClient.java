@@ -52,7 +52,7 @@ public class HelloUDPClient extends AbstractHelloUDPClient {
                 socket.setSoTimeout(TIMEOUT);
                 for (int requestId = 0; requestId < requests; requestId++) {
 
-                    String requestMessage = createMessage(prefix, threadId, requestId);
+                    String requestMessage = getRequestMessage(prefix, threadId, requestId);
                     System.out.printf("Sent: %s%n", requestMessage);
                     DatagramPacket request = newMessageSendPacket(requestMessage, address, port);
                     while (!Thread.interrupted()) {
