@@ -23,7 +23,7 @@ public class RemoteBank implements Bank {
     public Account createAccount(final String passportId, String subId) throws RemoteException {
         String accountId = String.format("%s:%s", passportId, subId);
         System.out.println("Creating account " + accountId);
-        final Account account = new RemoteAccount(accountId);
+        final Account account = new AccountImpl(accountId);
         accounts.putIfAbsent(passportId, new ConcurrentHashMap<>());
         if (accounts.get(passportId).putIfAbsent(subId, account) == null) {
             UnicastRemoteObject.exportObject(account, port);
@@ -47,14 +47,14 @@ public class RemoteBank implements Bank {
             return persons.get(passportId);
         } else {
             Person remotePerson = persons.get(passportId);
-            Map<String, Account> remoteAccounts = accounts.get(passportId);
             if (remotePerson == null) {
                 return null;
             }
+            Map<String, Account> remoteAccounts = accounts.get(passportId);
             Map<String, Account> localAccounts = remoteAccounts.entrySet().stream().collect(
                     Collectors.toMap(Map.Entry::getKey, entry -> {
                         try {
-                            return new LocalAccount(entry.getValue().getId(), entry.getValue().getAmount());
+                            return new AccountImpl(entry.getValue());
                         } catch (RemoteException e) {
                             throw new RuntimeException(e);
                         }

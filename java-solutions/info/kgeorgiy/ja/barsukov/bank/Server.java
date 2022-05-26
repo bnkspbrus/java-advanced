@@ -6,7 +6,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.*;
 
 public final class Server {
-    private final static int DEFAULT_PORT = 8888;
+    public final static int DEFAULT_PORT = 8888;
 
     public static void main(final String... args) {
         final int port = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;

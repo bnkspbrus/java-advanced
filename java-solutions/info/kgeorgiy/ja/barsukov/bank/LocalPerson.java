@@ -13,7 +13,7 @@ public class LocalPerson extends AbstractPerson {
 
     public Account createAccount(String subId) {
         String accountId = String.format("%s:%s", passportId, subId);
-        final Account account = new LocalAccount(accountId, 0);
+        final Account account = new AccountImpl(accountId);
         if (accounts.putIfAbsent(subId, account) == null) {
             return account;
         } else {

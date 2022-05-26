@@ -1,8 +1,12 @@
 package info.kgeorgiy.ja.barsukov.bank;
 
+import java.io.Serial;
 import java.io.Serializable;
 
-public class AbstractPerson implements Person, Serializable {
+public abstract class AbstractPerson implements Person, Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
     final String name, surname;
     final String passportId;
 
