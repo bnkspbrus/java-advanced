@@ -32,7 +32,7 @@ public class StatisticResourceBundle_ru_RU extends ListResourceBundle {
             {"number.min", "Минимальное число: {0, number}."},
             {"number.max", "Максимальное число: {0, number}."},
             {"number.average", "Среднее число: {0, number}."},
-            {"currenciesStatistics", "Статистика по суммам денег"},
+            {"currency.statistics", "Статистика по суммам денег"},
             {"currency.distinct", "Число сумм: {0, number, integer} ({1, number, integer} различных)."},
             {"currency.min", "Минимальная сумма: {0, number, currency}"},
             {"currency.max", "Максимальная сумма: {0, number, currency}"},

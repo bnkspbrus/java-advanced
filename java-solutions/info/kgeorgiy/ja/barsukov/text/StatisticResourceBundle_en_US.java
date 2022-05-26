@@ -32,7 +32,7 @@ public class StatisticResourceBundle_en_US extends ListResourceBundle {
             {"number.min", "Minimal number: {0, number}."},
             {"number.max", "Maximal number: {0, number}."},
             {"number.average", "Average number: {0, number}."},
-            {"currenciesStatistics", "Currencies statistics."},
+            {"currency.statistics", "Currencies statistics."},
             {"currency.distinct", "Number of currencies: {0, number, integer} ({1, number, integer} distinct)."},
             {"currency.min", "Minimal currency: {0, number, currency}"},
             {"currency.max", "Maximal currency: {0, number, currency}"},

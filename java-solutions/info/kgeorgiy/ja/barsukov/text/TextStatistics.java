@@ -55,9 +55,10 @@ public class TextStatistics {
                 Statistic<Number> numberStatistics = getNumbersStatistic(NumberFormat.getNumberInstance(textLocale));
                 Statistic<Number> currencyStatistics = getNumbersStatistic(NumberFormat.getNumberInstance(textLocale));
                 Statistic<Date> dateStatistics = getDatesStatistic();
-                bundle = ResourceBundle.getBundle("StatisticResourceBundle", reportLocale);
+                bundle = ResourceBundle.getBundle("info.kgeorgiy.ja.barsukov.text.StatisticResourceBundle", reportLocale);
                 writer.write(summaryBlock(sentenceStatistics.total, wordStatistics.total, numberStatistics.total,
                         currencyStatistics.total, dateStatistics.total));
+                writer.newLine();
                 writer.write(statisticToString(sentenceStatistics, "sentence"));
                 writer.newLine();
                 writer.write(statisticToString(wordStatistics, "word"));
@@ -97,39 +98,41 @@ public class TextStatistics {
     private String summaryBlock(int sentences, int words, int numbers, int currencies, int dates) {
         List<String> elements = new ArrayList<>();
         elements.add(format(bundle.getString("ParsedFile"), textFile.toString()));
-        elements.addAll(getShiftedList(bundle.getString("summary.statistics"),
-                format(bundle.getString("sentence.total"), sentences), format(bundle.getString("word.total"), words),
+        elements.add(bundle.getString("summary.statistics"));
+        elements.addAll(getShiftedList(
+                format(bundle.getString("sentence.total"), sentences),
+                format(bundle.getString("word.total"), words),
                 format(bundle.getString("number.total"), numbers),
-                format(bundle.getString("currency.total"), currencies), format(bundle.getString("date.total"), dates)));
+                format(bundle.getString("currency.total"), currencies),
+                format(bundle.getString("date.total"), dates)));
         return String.join("\n", elements);
     }
 
     List<String> getShiftedList(String... params) {
-        return Stream.of(params).map(s -> "\n" + s).toList();
+        return Stream.of(params).map(s -> "\t" + s).toList();
     }
 
 
     private Statistic<Number> getNumbersStatistic(NumberFormat format) {
         List<Number> parts = splitNumbers(BreakIterator.getWordInstance(textLocale), format);
         Statistic<Number> statistic = getPartialStatistic(parts, Comparator.comparingDouble(Number::doubleValue));
-        statistic.average = parts.stream().mapToDouble(Number::doubleValue).average().orElseThrow();
+        statistic.average = parts.stream().mapToDouble(Number::doubleValue).average().orElse(0);
         return statistic;
     }
 
     private Statistic<Date> getDatesStatistic() {
         List<Date> parts = splitDates(BreakIterator.getWordInstance(textLocale), DATA_STYLES);
         Statistic<Date> statistic = getPartialStatistic(parts, Date::compareTo);
-        statistic.average = parts.stream().mapToLong(Date::getTime).average().orElseThrow();
+        statistic.average = parts.stream().mapToLong(Date::getTime).average().orElse(0);
         return statistic;
     }
 
     private Statistic<String> getStringsStatistic(BreakIterator breakIterator) {
         List<String> parts = splitStrings(breakIterator);
         Statistic<String> statistic = getPartialStatistic(parts, Collator.getInstance(textLocale));
-        Comparator<String> lengthComparator = Comparator.comparingInt(String::length);
-        statistic.minLength = parts.stream().min(lengthComparator).orElseThrow().length();
-        statistic.maxLength = parts.stream().max(lengthComparator).orElseThrow().length();
-        statistic.average = parts.stream().mapToInt(String::length).average().orElseThrow();
+        statistic.minLength = parts.stream().mapToInt(String::length).min().orElse(0);
+        statistic.maxLength = parts.stream().mapToInt(String::length).max().orElse(0);
+        statistic.average = parts.stream().mapToInt(String::length).average().orElse(0);
         return statistic;
     }
 
@@ -182,7 +185,7 @@ public class TextStatistics {
         final List<String> parts = new ArrayList<>();
         for (int begin = boundary.first(), end = boundary.next(); end != BreakIterator.DONE; begin = end, end =
                 boundary.next()) {
-            parts.add(text.substring(begin, end));
+            parts.add(text.substring(begin, end).trim());
         }
         return parts;
     }
@@ -191,10 +194,9 @@ public class TextStatistics {
     private <T> Statistic<T> getPartialStatistic(List<T> parts, Comparator<? super T> comparator) {
         Statistic<T> statistic = new Statistic<>();
         statistic.total = parts.size();
-        Stream<T> stream = parts.stream();
-        statistic.distinct = (int) stream.distinct().count();
-        statistic.min = stream.min(comparator).orElseThrow();
-        statistic.max = stream.max(comparator).orElseThrow();
+        statistic.distinct = (int) parts.stream().distinct().count();
+        statistic.min = parts.stream().min(comparator).orElse(null);
+        statistic.max = parts.stream().max(comparator).orElse(null);
         return statistic;
     }
 
