@@ -11,10 +11,6 @@ import java.util.stream.Stream;
 import static java.text.MessageFormat.format;
 
 public class TextStatistics {
-
-    private final String FIRST_BLOCK_FORMAT = "%s%n%s\t%s%n\t%s%n\t%s%n\t%s%n\t%s%n";
-
-    private final String COMMON_BLOCK_FORMAT = "%s%n\t%s%n\t%s%n\t%s%n\t%s%n\t%s%n\t%s%n";
     private static final String UNAVAILABLE_LOCALE_APOLOGISE = "Sorry, this locale is unavailable for this system: %s";
     private final Locale textLocale, reportLocale;
     private final Path textFile, reportFile;
@@ -53,31 +49,65 @@ public class TextStatistics {
         try {
             text = Files.readString(textFile);
             try (BufferedWriter writer = Files.newBufferedWriter(reportFile)) {
-                NumberFormat numberFormat = NumberFormat.getNumberInstance(textLocale);
-                NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(textLocale);
-                DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, textLocale);
-                Statistic<String> sentences = getStringsStatistic(BreakIterator.getSentenceInstance(textLocale));
-                Statistic<String> words = getStringsStatistic(BreakIterator.getWordInstance(textLocale));
-                Statistic<Number> numbers = getNumbersStatistic(numberFormat);
-                Statistic<Number> currencies = getNumbersStatistic(currencyFormat);
-                Statistic<Date> dates = getDatesStatistic();
+                Statistic<String> sentenceStatistics = getStringsStatistic(
+                        BreakIterator.getSentenceInstance(textLocale));
+                Statistic<String> wordStatistics = getStringsStatistic(BreakIterator.getWordInstance(textLocale));
+                Statistic<Number> numberStatistics = getNumbersStatistic(NumberFormat.getNumberInstance(textLocale));
+                Statistic<Number> currencyStatistics = getNumbersStatistic(NumberFormat.getNumberInstance(textLocale));
+                Statistic<Date> dateStatistics = getDatesStatistic();
                 bundle = ResourceBundle.getBundle("StatisticResourceBundle", reportLocale);
-                writer.write(firstBlock(sentences.total, words.total, numbers.total, currencies.total, dates.total));
-
-//                writer.write()
+                writer.write(summaryBlock(sentenceStatistics.total, wordStatistics.total, numberStatistics.total,
+                        currencyStatistics.total, dateStatistics.total));
+                writer.write(statisticToString(sentenceStatistics, "sentence"));
+                writer.newLine();
+                writer.write(statisticToString(wordStatistics, "word"));
+                writer.newLine();
+                writer.write(statisticToString(numberStatistics, "number"));
+                writer.newLine();
+                writer.write(statisticToString(currencyStatistics, "currency"));
+                writer.newLine();
+                writer.write(statisticToString(dateStatistics, "date"));
             }
         } catch (IOException e) {
             System.out.println("Unable to read entity of text file");
         }
     }
 
-    private String firstBlock(int sentences, int words, int numbers, int currencies, int dates) {
-        return String.format(FIRST_BLOCK_FORMAT, format(bundle.getString("ParsedFile"), textFile.toString()),
-                bundle.getString("summaryStatistics"), format(bundle.getString("numberOfSentences"), sentences),
-                format(bundle.getString("numberOfWords"), words), format(bundle.getString("numberOfNumbers"), numbers),
-                format(bundle.getString("numberOfCurrencies"), currencies),
-                format(bundle.getString("numberOfDates"), dates));
+    private <T> String statisticToString(Statistic<T> statistic, String prefix) {
+        List<String> shift;
+        if (prefix.equals("word") || prefix.equals("sentence")) {
+            shift = getShiftedList(format(bundle.getString(prefix + ".distinct"), statistic.total, statistic.distinct),
+                    format(bundle.getString(prefix + ".min"), statistic.min),
+                    format(bundle.getString(prefix + ".max"), statistic.max),
+                    format(bundle.getString(prefix + ".minLength"), statistic.minLength),
+                    format(bundle.getString(prefix + ".maxLength"), statistic.maxLength),
+                    format(bundle.getString(prefix + ".average"), statistic.average));
+        } else {
+            shift = getShiftedList(format(bundle.getString(prefix + ".distinct"), statistic.total, statistic.distinct),
+                    format(bundle.getString(prefix + ".min"), statistic.min),
+                    format(bundle.getString(prefix + ".max"), statistic.max),
+                    format(bundle.getString(prefix + ".average"), statistic.average));
+        }
+        List<String> elements = new ArrayList<>();
+        elements.add(bundle.getString(prefix + ".statistics"));
+        elements.addAll(shift);
+        return String.join("\n", elements);
     }
+
+    private String summaryBlock(int sentences, int words, int numbers, int currencies, int dates) {
+        List<String> elements = new ArrayList<>();
+        elements.add(format(bundle.getString("ParsedFile"), textFile.toString()));
+        elements.addAll(getShiftedList(bundle.getString("summary.statistics"),
+                format(bundle.getString("sentence.total"), sentences), format(bundle.getString("word.total"), words),
+                format(bundle.getString("number.total"), numbers),
+                format(bundle.getString("currency.total"), currencies), format(bundle.getString("date.total"), dates)));
+        return String.join("\n", elements);
+    }
+
+    List<String> getShiftedList(String... params) {
+        return Stream.of(params).map(s -> "\n" + s).toList();
+    }
+
 
     private Statistic<Number> getNumbersStatistic(NumberFormat format) {
         List<Number> parts = splitNumbers(BreakIterator.getWordInstance(textLocale), format);
