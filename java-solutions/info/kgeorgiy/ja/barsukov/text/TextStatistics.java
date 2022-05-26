@@ -1,6 +1,5 @@
 package info.kgeorgiy.ja.barsukov.text;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,29 +47,23 @@ public class TextStatistics {
     private void run() {
         try {
             text = Files.readString(textFile);
-            try (BufferedWriter writer = Files.newBufferedWriter(reportFile)) {
-                Statistic<String> sentenceStatistics = getStringsStatistic(
-                        BreakIterator.getSentenceInstance(textLocale));
-                Statistic<String> wordStatistics = getStringsStatistic(BreakIterator.getWordInstance(textLocale));
-                Statistic<Number> numberStatistics = getNumbersStatistic(NumberFormat.getNumberInstance(textLocale));
-                Statistic<Number> currencyStatistics = getNumbersStatistic(NumberFormat.getNumberInstance(textLocale));
-                Statistic<Date> dateStatistics = getDatesStatistic();
-                bundle = ResourceBundle.getBundle("info.kgeorgiy.ja.barsukov.text.StatisticResourceBundle", reportLocale);
-                writer.write(summaryBlock(sentenceStatistics.total, wordStatistics.total, numberStatistics.total,
-                        currencyStatistics.total, dateStatistics.total));
-                writer.newLine();
-                writer.write(statisticToString(sentenceStatistics, "sentence"));
-                writer.newLine();
-                writer.write(statisticToString(wordStatistics, "word"));
-                writer.newLine();
-                writer.write(statisticToString(numberStatistics, "number"));
-                writer.newLine();
-                writer.write(statisticToString(currencyStatistics, "currency"));
-                writer.newLine();
-                writer.write(statisticToString(dateStatistics, "date"));
-            }
+            Statistic<String> sentenceStatistics = getStringsStatistic(BreakIterator.getSentenceInstance(textLocale));
+            Statistic<String> wordStatistics = getStringsStatistic(BreakIterator.getWordInstance(textLocale));
+            Statistic<Number> numberStatistics = getNumbersStatistic(NumberFormat.getNumberInstance(textLocale));
+            Statistic<Number> currencyStatistics = getNumbersStatistic(NumberFormat.getNumberInstance(textLocale));
+            Statistic<Date> dateStatistics = getDatesStatistic();
+
+            bundle = ResourceBundle.getBundle("info.kgeorgiy.ja.barsukov.text.StatisticResourceBundle", reportLocale);
+            Files.writeString(reportFile, String.join("\n",
+                    summaryBlock(sentenceStatistics.total, wordStatistics.total, numberStatistics.total,
+                            currencyStatistics.total, dateStatistics.total),
+                    statisticToString(sentenceStatistics, "sentence"),
+                    statisticToString(wordStatistics, "word"),
+                    statisticToString(numberStatistics, "number"),
+                    statisticToString(currencyStatistics, "currency"),
+                    statisticToString(dateStatistics, "date")));
         } catch (IOException e) {
-            System.out.println("Unable to read entity of text file");
+            throw new RuntimeException(e);
         }
     }
 
@@ -80,8 +73,8 @@ public class TextStatistics {
             shift = getShiftedList(format(bundle.getString(prefix + ".distinct"), statistic.total, statistic.distinct),
                     format(bundle.getString(prefix + ".min"), statistic.min),
                     format(bundle.getString(prefix + ".max"), statistic.max),
-                    format(bundle.getString(prefix + ".minLength"), statistic.minLength),
-                    format(bundle.getString(prefix + ".maxLength"), statistic.maxLength),
+                    format(bundle.getString(prefix + ".minLength"), statistic.minLength.length(), statistic.minLength),
+                    format(bundle.getString(prefix + ".maxLength"), statistic.maxLength.length(), statistic.maxLength),
                     format(bundle.getString(prefix + ".average"), statistic.average));
         } else {
             shift = getShiftedList(format(bundle.getString(prefix + ".distinct"), statistic.total, statistic.distinct),
@@ -99,12 +92,9 @@ public class TextStatistics {
         List<String> elements = new ArrayList<>();
         elements.add(format(bundle.getString("ParsedFile"), textFile.toString()));
         elements.add(bundle.getString("summary.statistics"));
-        elements.addAll(getShiftedList(
-                format(bundle.getString("sentence.total"), sentences),
-                format(bundle.getString("word.total"), words),
-                format(bundle.getString("number.total"), numbers),
-                format(bundle.getString("currency.total"), currencies),
-                format(bundle.getString("date.total"), dates)));
+        elements.addAll(getShiftedList(format(bundle.getString("sentence.total"), sentences),
+                format(bundle.getString("word.total"), words), format(bundle.getString("number.total"), numbers),
+                format(bundle.getString("currency.total"), currencies), format(bundle.getString("date.total"), dates)));
         return String.join("\n", elements);
     }
 
@@ -130,8 +120,8 @@ public class TextStatistics {
     private Statistic<String> getStringsStatistic(BreakIterator breakIterator) {
         List<String> parts = splitStrings(breakIterator);
         Statistic<String> statistic = getPartialStatistic(parts, Collator.getInstance(textLocale));
-        statistic.minLength = parts.stream().mapToInt(String::length).min().orElse(0);
-        statistic.maxLength = parts.stream().mapToInt(String::length).max().orElse(0);
+        statistic.minLength = parts.stream().min(Comparator.comparingInt(String::length)).orElse(null);
+        statistic.maxLength = parts.stream().max(Comparator.comparingInt(String::length)).orElse(null);
         statistic.average = parts.stream().mapToInt(String::length).average().orElse(0);
         return statistic;
     }
@@ -207,7 +197,7 @@ public class TextStatistics {
     private static class Statistic<T> {
         int total, distinct;
         T min, max;
-        int minLength, maxLength;
+        String maxLength, minLength;
         double average;
     }
 
