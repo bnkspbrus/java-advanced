@@ -39,7 +39,9 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
         } catch (IOException e) {
             System.out.println(e.getMessage());
         } finally {
-            channel.register(selector, SelectionKey.OP_READ);
+            if (selector.isOpen()) {
+                channel.register(selector, SelectionKey.OP_READ);
+            }
         }
     }
 
@@ -56,9 +58,12 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
             } catch (IOException e) {
                 System.out.println(e.getMessage());
             } finally {
-                try {
-                    channel.register(selector, SelectionKey.OP_WRITE);
-                } catch (ClosedChannelException ignored) {;
+                if (selector.isOpen()) {
+                    try {
+                        channel.register(selector, SelectionKey.OP_WRITE);
+                    } catch (ClosedChannelException e) {
+                        System.out.println(e.getMessage());
+                    }
                 }
             }
         });
@@ -109,10 +114,8 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
                             }
                         }
                     }
-                } catch (IOException e) {
+                } catch (IOException | ConcurrentModificationException | ClosedSelectorException e) {
                     System.out.println(e.getMessage());
-                } catch (ConcurrentModificationException | ClosedSelectorException ignored) {
-
                 }
             });
         } catch (IOException e) {
@@ -127,13 +130,6 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
         } catch (IOException e) {
             System.out.println("Unable to close channel");
         }
-        selector.keys().forEach(key -> {
-            try {
-                key.channel().close();
-            } catch (IOException e) {
-                System.out.println("Unable to close channel");
-            }
-        });
         try {
             selector.close();
         } catch (IOException e) {
