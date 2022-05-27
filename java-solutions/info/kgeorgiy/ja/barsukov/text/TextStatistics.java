@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.*;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.text.MessageFormat.format;
@@ -12,27 +13,21 @@ import static java.text.MessageFormat.format;
 public class TextStatistics {
     private static final String UNAVAILABLE_LOCALE_APOLOGISE = "Sorry, this locale is unavailable for this system: %s";
     private final Locale textLocale, reportLocale;
-    private final Path textFile, reportFile;
+    private Path textFile;
 
     private static final int[] DATA_STYLES = {DateFormat.FULL, DateFormat.LONG, DateFormat.SHORT, DateFormat.DEFAULT};
 
     /**
      * Constructor for {@link TextStatistics}.
-     * @param textLocale locale of text file to statistics.
+     *
+     * @param textLocale   locale of text file to statistics.
      * @param reportLocale locale of retort file for statistics.
-     * @param textFile path to text file to parsing.
-     * @param reportFile path to report file for statistics.
      */
-    public TextStatistics(Locale textLocale, Locale reportLocale, Path textFile, Path reportFile) {
+    public TextStatistics(Locale textLocale, Locale reportLocale) {
         this.textLocale = textLocale;
         this.reportLocale = reportLocale;
-        this.textFile = textFile;
-        this.reportFile = reportFile;
         Locale.setDefault(reportLocale);
     }
-
-
-    private String text;
 
     public static void main(String[] args) {
         if (args == null || args.length != 4 || anyMatchNull(args)) {
@@ -47,23 +42,27 @@ public class TextStatistics {
             System.out.printf(UNAVAILABLE_LOCALE_APOLOGISE, textLocale);
         }
         Path textFile = Path.of(args[2]), reportFile = Path.of(args[3]);
-        new TextStatistics(textLocale, reportLocale, textFile, reportFile).writeStatisticsToFile();
+        new TextStatistics(textLocale, reportLocale).writeStatisticsToFile(textFile, reportFile);
     }
 
     private ResourceBundle bundle;
 
     /**
      * Writes statistics in {@code reportFile} specified in class constructor
-     * {@link TextStatistics#TextStatistics(Locale, Locale, Path, Path)}.
+     * {@link TextStatistics#TextStatistics(Locale, Locale)}.
+     *
+     * @param textFile   path to text file to parsing.
+     * @param reportFile path to report file for statistics.
      */
-    private void writeStatisticsToFile() {
+    private void writeStatisticsToFile(Path textFile, Path reportFile) {
         try {
-            text = Files.readString(textFile);
-            Statistics<String> sentenceStatistics = getSentenceStatistics();
-            Statistics<String> wordStatistics = getWordStatistics();
-            Statistics<Number> numberStatistics = getNumberStatistics();
-            Statistics<Number> currencyStatistics = getCurrencyStatistics();
-            Statistics<Date> dateStatistics = getDateStatistics();
+            this.textFile = textFile;
+            String text = Files.readString(textFile);
+            Statistics<String> sentenceStatistics = getSentenceStatistics(text);
+            Statistics<String> wordStatistics = getWordStatistics(text);
+            Statistics<Number> numberStatistics = getNumberStatistics(text);
+            Statistics<Number> currencyStatistics = getCurrencyStatistics(text);
+            Statistics<Date> dateStatistics = getDateStatistics(text);
 
             bundle = ResourceBundle.getBundle("info.kgeorgiy.ja.barsukov.text.StatisticResourceBundle", reportLocale);
             Files.writeString(reportFile, String.join("\n",
@@ -78,48 +77,63 @@ public class TextStatistics {
     }
 
     /**
-     * Returns sentence statistics for {@code text} by {@code textLocale} specified {@link TextStatistics#TextStatistics(Locale, Locale, Path, Path)}.
+     * Returns sentence statistics for {@code text} by {@code textLocale} specified
+     * {@link TextStatistics#TextStatistics(Locale, Locale)}.
      *
+     * @param text string representation of text.
      * @return {@code Statistics<Number>} {@link Statistics} with data statistics.
      */
-    public Statistics<String> getSentenceStatistics() {
-        return getStringsStatistic(BreakIterator.getSentenceInstance(textLocale));
+    public Statistics<String> getSentenceStatistics(String text) {
+
+        return getStringsStatistic(text, BreakIterator.getSentenceInstance(textLocale));
     }
 
     /**
-     * Returns word statistics for {@code text} by {@code textLocale} specified in {@link TextStatistics#TextStatistics(Locale, Locale, Path, Path)}.
+     * Returns word statistics for {@code text} by {@code textLocale} specified in
+     * {@link TextStatistics#TextStatistics(Locale, Locale)}.
      *
+     * @param text string representation of text.
      * @return {@code Statistics<String>} {@link Statistics} with data statistics.
      */
-    public Statistics<String> getWordStatistics() {
-        return getStringsStatistic(BreakIterator.getWordInstance(textLocale));
+    public Statistics<String> getWordStatistics(String text) {
+
+        return getStringsStatistic(text, BreakIterator.getWordInstance(textLocale));
     }
 
     /**
-     * Returns number statistics for {@code text} by {@code textLocale} specified in {@link TextStatistics#TextStatistics(Locale, Locale, Path, Path)}.
+     * Returns number statistics for {@code text} by {@code textLocale} specified in
+     * {@link TextStatistics#TextStatistics(Locale, Locale)}.
      *
+     * @param text string representation of text.
      * @return {@code Statistics<Number>} {@link Statistics} with data statistics.
      */
-    public Statistics<Number> getNumberStatistics() {
-        return getNumberStatistics(NumberFormat.getNumberInstance(textLocale));
+    public Statistics<Number> getNumberStatistics(String text) {
+
+        return getNumberStatistics(text, NumberFormat.getNumberInstance(textLocale));
     }
 
     /**
-     * Returns currency statistics for {@code text} by {@code textLocale} specified in {@link TextStatistics#TextStatistics(Locale, Locale, Path, Path)}.
+     * Returns currency statistics for {@code text} by {@code textLocale} specified in
+     * {@link TextStatistics#TextStatistics(Locale, Locale)}.
      *
+     * @param text string representation of text.
      * @return {@code Statistics<Number>} {@link Statistics} with data statistics.
      */
-    public Statistics<Number> getCurrencyStatistics() {
-        return getNumberStatistics(NumberFormat.getCurrencyInstance(textLocale));
+    public Statistics<Number> getCurrencyStatistics(String text) {
+
+        return getNumberStatistics(text, NumberFormat.getCurrencyInstance(textLocale));
     }
 
     /**
-     * Returns date statistics for {@code text} by {@code textLocale} specified in {@link TextStatistics#TextStatistics(Locale, Locale, Path, Path)}.
+     * Returns date statistics for {@code text} by {@code textLocale} specified in
+     * {@link TextStatistics#TextStatistics(Locale, Locale)}.
      *
+     * @param text string representation of text.
      * @return {@code Statistics<Date>} {@link Statistics} with data statistics.
      */
-    public Statistics<Date> getDateStatistics() {
-        List<Date> parts = splitDates(BreakIterator.getWordInstance(textLocale), DATA_STYLES);
+    public Statistics<Date> getDateStatistics(String text) {
+
+        List<Date> parts = splitDates(text, BreakIterator.getWordInstance(textLocale), DATA_STYLES);
         Statistics<Date> statistic = getPartialStatistic(parts, Date::compareTo);
         statistic.average = parts.stream().mapToLong(Date::getTime).average().orElse(0);
         return statistic;
@@ -162,15 +176,16 @@ public class TextStatistics {
     }
 
 
-    private Statistics<Number> getNumberStatistics(NumberFormat format) {
-        List<Number> parts = splitNumbers(BreakIterator.getWordInstance(textLocale), format);
+    private Statistics<Number> getNumberStatistics(String text, NumberFormat format) {
+        List<Number> parts = splitNumbers(text, BreakIterator.getWordInstance(textLocale), format);
         Statistics<Number> statistic = getPartialStatistic(parts, Comparator.comparingDouble(Number::doubleValue));
         statistic.average = parts.stream().mapToDouble(Number::doubleValue).average().orElse(0);
         return statistic;
     }
 
-    private Statistics<String> getStringsStatistic(BreakIterator breakIterator) {
-        List<String> parts = splitStrings(breakIterator);
+    private Statistics<String> getStringsStatistic(String text, BreakIterator breakIterator) {
+        List<String> parts = splitStrings(text, breakIterator).stream().filter(part -> part.codePoints().anyMatch(Character::isLetter))
+                .collect(Collectors.toList());
         Statistics<String> statistic = getPartialStatistic(parts, Collator.getInstance(textLocale));
         statistic.minLength = parts.stream().min(Comparator.comparingInt(String::length)).orElse(null);
         statistic.maxLength = parts.stream().max(Comparator.comparingInt(String::length)).orElse(null);
@@ -178,7 +193,7 @@ public class TextStatistics {
         return statistic;
     }
 
-    private List<Number> splitNumbers(BreakIterator boundary, NumberFormat format) {
+    private List<Number> splitNumbers(String text, BreakIterator boundary, NumberFormat format) {
         boundary.setText(text);
         ParsePosition position = new ParsePosition(0);
         final List<Number> parts = new ArrayList<>();
@@ -197,7 +212,7 @@ public class TextStatistics {
         return parts;
     }
 
-    private List<Date> splitDates(BreakIterator boundary, int... styles) {
+    private List<Date> splitDates(String text, BreakIterator boundary, int... styles) {
         List<DateFormat> formats = Arrays.stream(styles).mapToObj(
                 style -> DateFormat.getDateInstance(style, textLocale)).toList();
         ParsePosition position = new ParsePosition(0);
@@ -222,7 +237,7 @@ public class TextStatistics {
         return parts;
     }
 
-    private List<String> splitStrings(final BreakIterator boundary) {
+    private List<String> splitStrings(String text, final BreakIterator boundary) {
         boundary.setText(text);
         final List<String> parts = new ArrayList<>();
         for (int begin = boundary.first(), end = boundary.next(); end != BreakIterator.DONE; begin = end, end =
