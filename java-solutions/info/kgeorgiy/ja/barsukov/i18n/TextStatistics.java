@@ -1,4 +1,4 @@
-package info.kgeorgiy.ja.barsukov.text;
+package info.kgeorgiy.ja.barsukov.i18n;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,7 +15,14 @@ public class TextStatistics {
     private final Locale textLocale, reportLocale;
     private Path textFile;
 
-    private static final int[] DATA_STYLES = {DateFormat.FULL, DateFormat.LONG, DateFormat.SHORT, DateFormat.DEFAULT};
+    private static final int[] DATA_STYLES = {
+            DateFormat.FULL,
+            DateFormat.LONG,
+            DateFormat.SHORT,
+            DateFormat.DEFAULT,
+            DateFormat.MEDIUM,
+            DateFormat.DATE_FIELD,
+    };
 
     /**
      * Constructor for {@link TextStatistics}.
@@ -184,7 +191,8 @@ public class TextStatistics {
     }
 
     private Statistics<String> getStringsStatistic(String text, BreakIterator breakIterator) {
-        List<String> parts = splitStrings(text, breakIterator).stream().filter(part -> part.codePoints().anyMatch(Character::isLetter))
+        List<String> parts = splitStrings(text, breakIterator).stream().filter(
+                        part -> part.codePoints().anyMatch(Character::isLetter))
                 .collect(Collectors.toList());
         Statistics<String> statistic = getPartialStatistic(parts, Collator.getInstance(textLocale));
         statistic.minLength = parts.stream().min(Comparator.comparingInt(String::length)).orElse(null);
@@ -213,6 +221,7 @@ public class TextStatistics {
     }
 
     private List<Date> splitDates(String text, BreakIterator boundary, int... styles) {
+        boundary.setText(text);
         List<DateFormat> formats = Arrays.stream(styles).mapToObj(
                 style -> DateFormat.getDateInstance(style, textLocale)).toList();
         ParsePosition position = new ParsePosition(0);

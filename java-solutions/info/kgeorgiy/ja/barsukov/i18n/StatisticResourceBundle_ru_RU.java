@@ -1,4 +1,4 @@
-package info.kgeorgiy.ja.barsukov.text;
+package info.kgeorgiy.ja.barsukov.i18n;
 
 import java.util.ListResourceBundle;
 
