@@ -16,14 +16,12 @@ public final class Server {
             Registry registry = LocateRegistry.createRegistry(port);
             UnicastRemoteObject.exportObject(bank, port);
             registry.rebind("//localhost/bank", bank);
-            UnicastRemoteObject.unexportObject(registry.lookup("//localhost/bank"), true);
+//            UnicastRemoteObject.unexportObject(registry.lookup("//localhost/bank"), true);
             System.out.println("Server started");
         } catch (final RemoteException e) {
             System.out.println("Cannot export object: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);
-        } catch (NotBoundException e) {
-            throw new RuntimeException(e);
         }
     }
 }

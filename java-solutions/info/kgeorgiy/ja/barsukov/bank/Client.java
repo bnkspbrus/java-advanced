@@ -54,16 +54,6 @@ public final class Client {
         account.setAmount(account.getAmount() + change);
         System.out.println("Money: " + account.getAmount());
     }
-
-    /**
-     *
-     * @param bank
-     * @param person
-     * @param subId
-     * @param remote
-     * @return
-     * @throws RemoteException
-     */
     public static Account getAccount(Bank bank, Person person, String subId, boolean remote) throws RemoteException {
         if (remote) {
             return bank.getAccount(person.getPassportId(), subId);
@@ -72,15 +62,6 @@ public final class Client {
         }
     }
 
-    /**
-     *
-     * @param bank
-     * @param person
-     * @param subId
-     * @param remote
-     * @return
-     * @throws RemoteException
-     */
     public static Account createAccount(Bank bank, Person person, String subId,
             boolean remote) throws RemoteException {
         if (remote) {
