@@ -53,16 +53,16 @@ public class HelloUDPClient extends AbstractHelloUDPClient {
                 for (int requestId = 0; requestId < requests; requestId++) {
 
                     String requestMessage = getRequestMessage(prefix, threadId, requestId);
-                    System.out.printf("Sent: %s%n", requestMessage);
                     DatagramPacket request = newMessageSendPacket(requestMessage, address, port);
                     while (!Thread.interrupted()) {
                         try {
                             socket.send(request);
+                            logSent(requestMessage);
                             DatagramPacket response = newEmptyReceivePacket(socket);
                             socket.receive(response);
                             String responseMessage = packetDataToString(response);
                             if (responseMessage.endsWith(requestMessage)) {
-                                System.out.printf("Received: %s%n", responseMessage);
+                                logReceived(requestMessage);
                                 break;
                             }
 

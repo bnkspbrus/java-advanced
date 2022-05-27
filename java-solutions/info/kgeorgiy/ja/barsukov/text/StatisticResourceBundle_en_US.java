@@ -41,7 +41,7 @@ public class StatisticResourceBundle_en_US extends ListResourceBundle {
             {"date.distinct", "Number of dates: {0, number, integer} ({1, number, integer} distinct)."},
             {"date.min", "Minimal date: {0, date, medium}."},
             {"date.max", "Maximal date: {0, date, medium}."},
-            {"date.average", "Average date: {0, date, medium}.."},
+            {"date.average", "Average date: {0, date, medium}."},
             {"-o", "Write output"},
     };
 

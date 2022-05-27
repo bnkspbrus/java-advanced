@@ -15,4 +15,12 @@ public abstract class AbstractHelloUDPClient implements HelloClient {
         }
         client.run(args[0], parseInt(args[1]), args[2], parseInt(args[3]), parseInt(args[4]));
     }
+
+    static void logSent(String msg) {
+        System.out.printf("Sent: %s%n", msg);
+    }
+
+    static void logReceived(String msg) {
+        System.out.printf("Received: %s%n", msg);
+    }
 }

@@ -1,5 +1,6 @@
 package info.kgeorgiy.ja.barsukov.bank;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -12,6 +13,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +23,6 @@ import static org.junit.Assert.*;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class BankTests {
-    private static Bank bank;
 
     private static Person localPerson, remotePerson;
 
@@ -31,10 +32,12 @@ public class BankTests {
 
     private static final String LOCAL_SUB_ID = "localAccount", REMOTE_SUB_ID = "remoteAccount";
 
+    private static final String REGISTRY_BANK_NAME = "//localhost/bank";
+
+    private static Bank bank;
+
     public static void main(String[] args) {
         test();
-        // :NOTE: exit(0)
-//        System.exit(0);
     }
 
     private static void test() {
@@ -58,15 +61,17 @@ public class BankTests {
     }
 
     @BeforeClass
-    public static void before() throws RemoteException, NotBoundException {
-        Server.main();
-        Registry registry = LocateRegistry.getRegistry(Server.DEFAULT_PORT);
-        bank = (Bank) registry.lookup("//localhost/bank");
+    public static void before() throws RemoteException {
+        bank = new RemoteBank(Server.DEFAULT_PORT);
+        Registry registry = LocateRegistry.createRegistry(Server.DEFAULT_PORT);
+        UnicastRemoteObject.exportObject(bank, Server.DEFAULT_PORT);
+        registry.rebind(REGISTRY_BANK_NAME, bank);
     }
 
     @Test
-    public void test01_initRemoteAndLocalPerson() throws RemoteException {
+    public void test01_initRemoteAndLocalPerson() throws RemoteException, NotBoundException {
 
+        Bank bank = (Bank) LocateRegistry.getRegistry(Server.DEFAULT_PORT).lookup(REGISTRY_BANK_NAME);
         remotePerson = bank.getPerson(REMOTE_ID, true);
         localPerson = bank.getPerson(LOCAL_ID, false);
         assertNull(remotePerson);
@@ -96,8 +101,8 @@ public class BankTests {
     }
 
     @Test
-    public void test02_amountTest() throws RemoteException {
-
+    public void test02_amountTest() throws RemoteException, NotBoundException {
+        Bank bank = (Bank) LocateRegistry.getRegistry(Server.DEFAULT_PORT).lookup(REGISTRY_BANK_NAME);
         assertEquals(0, localAccount.getAmount());
         assertEquals(0, remoteAccount.getAmount());
         Person localPerson2 = bank.getPerson(REMOTE_ID, false);
@@ -114,59 +119,63 @@ public class BankTests {
     }
 
     @Test
-    public void test03_addAccountTest() throws RemoteException {
-
+    public void test03_addAccountTest() throws RemoteException, NotBoundException {
+        Bank bank = (Bank) LocateRegistry.getRegistry(Server.DEFAULT_PORT).lookup(REGISTRY_BANK_NAME);
         assertNotNull(localAccount);
         assertNotNull(remoteAccount);
         final String newAccountId = "newAccountId";
         assertNull(Client.getAccount(bank, localPerson, newAccountId, false));
         assertNull(Client.getAccount(bank, remotePerson, newAccountId, true));
-        Account newAccount = Client.createAccount(bank, localPerson, newAccountId, false);
+        Client.createAccount(bank, localPerson, newAccountId, false);
         assertNull(Client.getAccount(bank, remotePerson, newAccountId, true));
 
     }
 
     @Test
-    public void test04_multiThread() throws RemoteException, InterruptedException {
-        ExecutorService writers = Executors.newFixedThreadPool(10);
+    public void test04_multiThread() throws RemoteException, InterruptedException, NotBoundException {
+        Bank bank = (Bank) LocateRegistry.getRegistry(Server.DEFAULT_PORT).lookup(REGISTRY_BANK_NAME);
+        ExecutorService writers = Executors.newFixedThreadPool(50);
         assertEquals(200, remoteAccount.getAmount());
-        Account[] accounts = new Account[10];
-        for (int i = 0; i < 10; i++) {
+        Account[] accounts = new Account[50];
+        for (int i = 0; i < 50; i++) {
             accounts[i] = Client.getAccount(bank, remotePerson, REMOTE_SUB_ID, true);
             assertEquals(200, accounts[i].getAmount());
         }
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 50; i++) {
             writers.execute(new Writer(accounts[i]));
         }
-        writers.shutdown();
-
-        if (!writers.awaitTermination(60, TimeUnit.SECONDS)) {
-            writers.shutdownNow();
-        }
+        awaitTermination(writers);
         for (Account account : accounts) {
             assertEquals(250, account.getAmount());
         }
     }
 
-    private static class Writer implements Runnable {
+    private static void awaitTermination(ExecutorService executor) throws InterruptedException {
+        executor.shutdown();
 
-        private final Account account;
-
-        Writer(Account account) {
-            this.account = account;
+        if (!executor.awaitTermination(100, TimeUnit.SECONDS)) {
+            executor.shutdownNow();
         }
+    }
 
-        private final AtomicInteger amount = new AtomicInteger(200);
+    private record Writer(Account account) implements Runnable {
+
+        private static final AtomicInteger amount = new AtomicInteger(200);
 
         @Override
         public void run() {
-            while (!Thread.interrupted() && amount.get() != 250) {
-                try {
-                    account.setAmount(amount.incrementAndGet());
-                } catch (RemoteException e) {
-                    Thread.currentThread().interrupt();
-                }
+            try {
+                account.setAmount(amount.incrementAndGet());
+            } catch (RemoteException e) {
+                Thread.currentThread().interrupt();
             }
         }
+    }
+
+    @AfterClass
+    public static void after() throws RemoteException, NotBoundException {
+//        Bank bank = (Bank) LocateRegistry.getRegistry(Server.DEFAULT_PORT).lookup(REGISTRY_BANK_NAME);
+        LocateRegistry.getRegistry(Server.DEFAULT_PORT).unbind(REGISTRY_BANK_NAME);
+        UnicastRemoteObject.unexportObject(bank, true);
     }
 }

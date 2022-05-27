@@ -38,6 +38,7 @@ public class HelloUDPNonblockingClient extends AbstractHelloUDPClient {
         ByteBuffer buf = StandardCharsets.UTF_8.encode(msg);
         try {
             channel.send(buf, address);
+            logSent(msg);
             channel.register(selector, SelectionKey.OP_READ, att);
         } catch (IOException e) {
             System.out.println(e.getMessage());
@@ -53,6 +54,7 @@ public class HelloUDPNonblockingClient extends AbstractHelloUDPClient {
             channel.receive(buf);
             String response = StandardCharsets.UTF_8.decode(buf.flip()).toString();
             if (response.contains(msg)) {
+                logSent(response);
                 att.requestId++;
                 if (att.requestId == requests) {
                     channel.close();

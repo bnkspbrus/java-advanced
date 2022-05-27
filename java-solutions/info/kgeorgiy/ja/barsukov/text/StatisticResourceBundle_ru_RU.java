@@ -41,7 +41,7 @@ public class StatisticResourceBundle_ru_RU extends ListResourceBundle {
             {"date.distinct", "Число дат: {0, number, integer} ({1, number, integer} различных)."},
             {"date.min", "Минимальная дата: {0, date, medium}."},
             {"date.max", "Максимальная дата: {0, date, medium}."},
-            {"date.average", " Средняя дата: {0, date, medium}.."},
+            {"date.average", " Средняя дата: {0, date, medium}."},
             {"-o", "Write output"},
     };
 

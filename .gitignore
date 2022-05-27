@@ -22,6 +22,8 @@ _*
 
 !/java-solutions/info
 
+!/lib
+
 /java-solutions/info/*
 
 !/java-solutions/info/kgeorgiy
@@ -49,6 +51,15 @@ _*
 !/java-solutions/info/kgeorgiy/ja/barsukov/hello/HelloUDPClient.java
 !/java-solutions/info/kgeorgiy/ja/barsukov/hello/HelloUDPServer.java
 !/java-solutions/info/kgeorgiy/ja/barsukov/hello/HelloUDPUtil.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/hello/HelloUDPNonblockingClient.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/hello/HelloUDPNonblockingServer.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/hello/AbstractHelloUDPClient.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/hello/AbstractHelloUDPServer.java
+
+/java-solutions/info/kgeorgiy/ja/barsukov/text/*
+!/java-solutions/info/kgeorgiy/ja/barsukov/text/StatisticResourceBundle_en_US.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/text/StatisticResourceBundle_ru_RU.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/text/TextStatistics.java
 
 #/java-solutions/info/kgeorgiy/ja/barsukov/rmi/*
 
