@@ -110,6 +110,8 @@ public class HelloUDPNonblockingClient extends AbstractHelloUDPClient {
                 }
 
             }
+            // :NOTE: selector.close();
+            // :NOTE: закрыть все каналы
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }

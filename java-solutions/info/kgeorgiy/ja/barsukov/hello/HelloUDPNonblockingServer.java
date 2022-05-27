@@ -77,6 +77,7 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
 
     private ByteBuffer buffer;
 
+    // :NOTE: утечка ресурсов при повторных вызовах
     @Override
     public void start(int port, int threads) {
         SocketAddress address = new InetSocketAddress(port);
@@ -118,8 +119,11 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
                     System.out.println(e.getMessage());
                 }
             });
+
+            // :NOTE: selector.close()
         } catch (IOException e) {
             System.out.println(e.getMessage());
+            // :NOTE: throw RuntimeException
         }
     }
 
