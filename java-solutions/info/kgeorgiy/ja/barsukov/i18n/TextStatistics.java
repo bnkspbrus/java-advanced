@@ -39,6 +39,7 @@ public class TextStatistics {
     public static void main(String[] args) {
         if (args == null || args.length != 4 || anyMatchNull(args)) {
             printUsage();
+            // :NOTE: лучше бросать исключения. Эти коды все равно никто не знает и не использует в джаве (почти)
             System.exit(1);
         }
         Locale textLocale = Locale.forLanguageTag(args[0]), reportLocale = Locale.forLanguageTag(args[1]);
@@ -72,6 +73,7 @@ public class TextStatistics {
             Statistics<Date> dateStatistics = getDateStatistics(text);
 
             bundle = ResourceBundle.getBundle("info.kgeorgiy.ja.barsukov.text.StatisticResourceBundle", reportLocale);
+            // :NOTE: \n
             Files.writeString(reportFile, String.join("\n",
                     summaryToString(sentenceStatistics.total, wordStatistics.total, numberStatistics.total,
                             currencyStatistics.total, dateStatistics.total),
@@ -79,6 +81,7 @@ public class TextStatistics {
                     statisticToString(numberStatistics, "number"), statisticToString(currencyStatistics, "currency"),
                     statisticToString(dateStatistics, "date")));
         } catch (IOException e) {
+            // :NOTE: err
             System.out.println(e.getLocalizedMessage());
         }
     }
@@ -165,6 +168,7 @@ public class TextStatistics {
         List<String> elements = new ArrayList<>();
         elements.add(bundle.getString(prefix + ".statistics"));
         elements.addAll(shift);
+        // :NOTE: \n
         return String.join("\n", elements);
     }
 
