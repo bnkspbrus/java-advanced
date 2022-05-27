@@ -60,6 +60,7 @@ _*
 !/java-solutions/info/kgeorgiy/ja/barsukov/text/StatisticResourceBundle_en_US.java
 !/java-solutions/info/kgeorgiy/ja/barsukov/text/StatisticResourceBundle_ru_RU.java
 !/java-solutions/info/kgeorgiy/ja/barsukov/text/TextStatistics.java
+!/java-solutions/info/kgeorgiy/ja/barsukov/text/StatisticTests.java
 
 #/java-solutions/info/kgeorgiy/ja/barsukov/rmi/*
 
