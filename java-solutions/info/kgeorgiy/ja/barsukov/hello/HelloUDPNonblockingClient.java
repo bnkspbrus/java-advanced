@@ -35,12 +35,12 @@ public class HelloUDPNonblockingClient extends AbstractHelloUDPClient {
         DatagramChannel channel = (DatagramChannel) key.channel();
         Attachment att = (Attachment) key.attachment();
         String msg = getRequestMessage(prefix, att.threadId, att.requestId);
-        ByteBuffer buf = ByteBuffer.wrap(msg.getBytes(StandardCharsets.UTF_8));
+        ByteBuffer buf = StandardCharsets.UTF_8.encode(msg);
         try {
             channel.send(buf, address);
             channel.register(selector, SelectionKey.OP_READ, att);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.out.println(e.getMessage());
         }
     }
 
@@ -61,7 +61,7 @@ public class HelloUDPNonblockingClient extends AbstractHelloUDPClient {
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.out.println(e.getMessage());
         }
     }
 
