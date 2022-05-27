@@ -6,6 +6,7 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -49,7 +50,7 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
                 RequestData data = requests.poll();
                 if (data != null) {
                     String response = getResponseMessage(data.msg);
-                    ByteBuffer buf = ByteBuffer.wrap(response.getBytes(StandardCharsets.UTF_8));
+                    ByteBuffer buf = StandardCharsets.UTF_8.encode(response);
                     channel.send(buf, data.address);
                 }
             } catch (IOException e) {
@@ -57,7 +58,7 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
             } finally {
                 try {
                     channel.register(selector, SelectionKey.OP_WRITE);
-                } catch (ClosedChannelException ignored) {
+                } catch (ClosedChannelException ignored) {;
                 }
             }
         });
@@ -92,7 +93,7 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
                 try {
                     while (!Thread.interrupted() && listener.isOpen()) {
                         selector.select(TIMEOUT);
-                        for (final Iterator<SelectionKey> i = selector.selectedKeys().iterator(); i.hasNext(); ) {
+                        for (final Iterator<SelectionKey> i = selector.selectedKeys().iterator(); selector.isOpen() && i.hasNext(); ) {
                             final SelectionKey key = i.next();
                             try {
                                 if (key.isValid()) {
@@ -108,7 +109,10 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
                             }
                         }
                     }
-                } catch (Exception ignored) {
+                } catch (IOException e) {
+                    System.out.println(e.getMessage());
+                } catch (ConcurrentModificationException | ClosedSelectorException ignored) {
+
                 }
             });
         } catch (IOException e) {
