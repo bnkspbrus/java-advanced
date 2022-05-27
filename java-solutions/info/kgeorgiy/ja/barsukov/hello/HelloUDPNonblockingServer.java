@@ -93,7 +93,7 @@ public class HelloUDPNonblockingServer extends AbstractHelloUDPServer {
                 try {
                     while (!Thread.interrupted() && listener.isOpen()) {
                         selector.select(TIMEOUT);
-                        for (final Iterator<SelectionKey> i = selector.selectedKeys().iterator(); selector.isOpen() && i.hasNext(); ) {
+                        for (final Iterator<SelectionKey> i = selector.selectedKeys().iterator(); i.hasNext(); ) {
                             final SelectionKey key = i.next();
                             try {
                                 if (key.isValid()) {

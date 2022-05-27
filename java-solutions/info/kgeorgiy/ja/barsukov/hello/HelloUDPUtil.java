@@ -11,10 +11,19 @@ import java.util.concurrent.TimeUnit;
 
 public class HelloUDPUtil {
 
+    /**
+     * Checks all elements in {@code args} don't match with null.
+     * @param args command prompt arguments for main.
+     * @return {@code true} if args doesn't have null,{@code false} otherwise.
+     */
     public static boolean anyMatchNull(String[] args) {
         return Arrays.stream(args).anyMatch(Objects::isNull);
     }
 
+    /**
+     * Tries to shutdown {@code workers}.
+     * @param workers {@code ExecutorService} to close.
+     */
     public static void awaitTermination(ExecutorService workers) {
         workers.shutdown();
         try {
@@ -26,6 +35,8 @@ public class HelloUDPUtil {
             Thread.currentThread().interrupt();
         }
     }
+
+
     public static String packetDataToString(DatagramPacket response) {
         return new String(response.getData(), response.getOffset(), response.getLength(), StandardCharsets.UTF_8);
     }
